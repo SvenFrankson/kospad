@@ -18,13 +18,13 @@ class Main {
 	public async initialize(): Promise<void> {
 		await this.initializeScene();
 
-        this.networkManager = new NetworkManager();
+        this.networkManager = new NetworkManager(this);
         this.networkManager.initialize();
 
-        this.networkSpaceshipManager = new NetworkSpaceshipManager();
-        //this.networkSpaceshipManager.initialize();
+        this.networkSpaceshipManager = new NetworkSpaceshipManager(this);
+        this.networkSpaceshipManager.initialize();
 
-        let spaceship = new Spaceship("test-ship");
+        let spaceship = new Spaceship("test-ship", this);
         spaceship.instantiate();
         spaceship.attachPilot(new FakeHuman());
         spaceship.attachController(new SpaceshipPhysicController());

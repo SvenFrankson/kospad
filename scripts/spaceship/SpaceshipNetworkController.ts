@@ -2,7 +2,7 @@ class SpaceshipNetworkController extends SpaceshipController {
 
     public lastSpaceshipPosition: ISpaceshipPositionData;
 
-    public updateController(): void {
+    public onBeforeUpdateSpaceship(): void {
         this.spaceship.position.x = this.lastSpaceshipPosition.pos[0];
         this.spaceship.position.y = this.lastSpaceshipPosition.pos[1];
         this.spaceship.position.z = this.lastSpaceshipPosition.pos[2];

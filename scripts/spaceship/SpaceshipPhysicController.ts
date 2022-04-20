@@ -2,7 +2,7 @@
 
 class SpaceshipPhysicController extends SpaceshipController {
 
-    public updateController(): void {
+    public onBeforeUpdateSpaceship(): void {
         let dt = this.spaceship.getEngine().getDeltaTime() / 1000;
         this.spaceship.position.addInPlace(this.spaceship.forward.scale(dt * 3));
 
@@ -11,5 +11,9 @@ class SpaceshipPhysicController extends SpaceshipController {
 
         rollQuat.multiplyToRef(this.spaceship.rotationQuaternion, this.spaceship.rotationQuaternion);
         pitchQuat.multiplyToRef(this.spaceship.rotationQuaternion, this.spaceship.rotationQuaternion);
+    }
+
+    public onAfterUpdateSpaceship(): void {
+        this.spaceship.main.networkManager.broadcastData(this.spaceship.getPositionData());
     }
 }

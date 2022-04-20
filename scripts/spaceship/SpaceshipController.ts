@@ -11,5 +11,6 @@ abstract class SpaceshipController {
         spaceship.controller = this;
     }
 
-    public abstract updateController(): void;
+    public onBeforeUpdateSpaceship(): void {}
+    public onAfterUpdateSpaceship(): void {}
 }

@@ -8,13 +8,17 @@ class NetworkManager {
 
     private peer: Peer;
 
+    private connections: Peer.DataConnection[] = [];
+
     // debug
     private otherIdInput: HTMLInputElement;
     private otherIdConnect: HTMLInputElement;
     private textInput: HTMLInputElement;
     private textSend: HTMLInputElement;
 
-    constructor() {
+    constructor(
+        public main: Main,
+    ) {
         ScreenLoger.Log("Create NetworkManager");
     }
 
@@ -48,6 +52,8 @@ class NetworkManager {
 
     public onPeerConnection(conn: Peer.DataConnection): void {
         ScreenLoger.Log("Incoming connection, other ID is '" + conn.peer + "'");
+        this.connections.push(conn);
+
         conn.on(
             'data',
             (data) => {
@@ -62,10 +68,18 @@ class NetworkManager {
     }
 
     public onConnData(data: any, conn: Peer.DataConnection): void {
-        ScreenLoger.Log("Data received from other ID '" + conn.peer + "'");
-        ScreenLoger.Log(data);
         if (data.type === NetworkDataType.SpaceshipPosition) {
-            
+            this.main.networkSpaceshipManager.updateData(data);
+        }
+        else {
+            ScreenLoger.Log("Data received from other ID '" + conn.peer + "'");
+            ScreenLoger.Log(data);
+        }
+    }
+
+    public broadcastData(data: any): void {
+        for (let i = 0; i < this.connections.length; i++) {
+            this.connections[i].send(data);
         }
     }
 

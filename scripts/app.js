@@ -7,11 +7,11 @@ class Main {
     }
     async initialize() {
         await this.initializeScene();
-        this.networkManager = new NetworkManager();
+        this.networkManager = new NetworkManager(this);
         this.networkManager.initialize();
-        this.networkSpaceshipManager = new NetworkSpaceshipManager();
-        //this.networkSpaceshipManager.initialize();
-        let spaceship = new Spaceship("test-ship");
+        this.networkSpaceshipManager = new NetworkSpaceshipManager(this);
+        this.networkSpaceshipManager.initialize();
+        let spaceship = new Spaceship("test-ship", this);
         spaceship.instantiate();
         spaceship.attachPilot(new FakeHuman());
         spaceship.attachController(new SpaceshipPhysicController());
@@ -58,7 +58,9 @@ var NetworkDataType;
     NetworkDataType[NetworkDataType["SpaceshipPosition"] = 1] = "SpaceshipPosition";
 })(NetworkDataType || (NetworkDataType = {}));
 class NetworkManager {
-    constructor() {
+    constructor(main) {
+        this.main = main;
+        this.connections = [];
         ScreenLoger.Log("Create NetworkManager");
     }
     initialize() {
@@ -85,6 +87,7 @@ class NetworkManager {
     }
     onPeerConnection(conn) {
         ScreenLoger.Log("Incoming connection, other ID is '" + conn.peer + "'");
+        this.connections.push(conn);
         conn.on('data', (data) => {
             this.onConnData(data, conn);
         });
@@ -94,9 +97,17 @@ class NetworkManager {
         };
     }
     onConnData(data, conn) {
-        ScreenLoger.Log("Data received from other ID '" + conn.peer + "'");
-        ScreenLoger.Log(data);
         if (data.type === NetworkDataType.SpaceshipPosition) {
+            this.main.networkSpaceshipManager.updateData(data);
+        }
+        else {
+            ScreenLoger.Log("Data received from other ID '" + conn.peer + "'");
+            ScreenLoger.Log(data);
+        }
+    }
+    broadcastData(data) {
+        for (let i = 0; i < this.connections.length; i++) {
+            this.connections[i].send(data);
         }
     }
     // debug
@@ -106,6 +117,31 @@ class NetworkManager {
     }
 }
 class NetworkSpaceshipManager {
+    constructor(main) {
+        this.main = main;
+        this.networkSpaceships = [];
+    }
+    initialize() {
+    }
+    createSpaceshipFromData(data) {
+        let spaceship = new Spaceship("test-ship", this.main);
+        spaceship.instantiate();
+        spaceship.attachController(new SpaceshipNetworkController());
+        spaceship.guid = data.guid;
+        return spaceship;
+    }
+    updateData(data) {
+        if (data) {
+            let networkSpaceship = this.networkSpaceships.find(s => { return s.guid === data.guid; });
+            if (!networkSpaceship) {
+                networkSpaceship = this.createSpaceshipFromData(data);
+                this.networkSpaceships.push(networkSpaceship);
+            }
+            if (networkSpaceship) {
+                networkSpaceship.controller.lastSpaceshipPosition = data;
+            }
+        }
+    }
 }
 class Pilot {
     constructor() {
@@ -135,8 +171,9 @@ class FakeHuman extends Pilot {
     }
 }
 class Spaceship extends BABYLON.Mesh {
-    constructor(name) {
+    constructor(name, main) {
         super(name);
+        this.main = main;
         this.rollInput = 0;
         this.pitchInput = 0;
         this._update = () => {
@@ -144,9 +181,16 @@ class Spaceship extends BABYLON.Mesh {
                 this.pilot.updatePilot();
             }
             if (this.controller) {
-                this.controller.updateController();
+                this.controller.onBeforeUpdateSpaceship();
+            }
+            if (this.controller) {
+                this.controller.onAfterUpdateSpaceship();
             }
         };
+        this.guid = "";
+        for (let i = 0; i < 16; i++) {
+            this.guid += (Math.floor(Math.random() * 16)).toString(16);
+        }
     }
     attachPilot(pilot) {
         this.pilot = pilot;
@@ -163,6 +207,8 @@ class Spaceship extends BABYLON.Mesh {
     }
     getPositionData() {
         return {
+            type: NetworkDataType.SpaceshipPosition,
+            guid: this.guid,
             pos: [this.position.x, this.position.y, this.position.z],
             quat: [this.rotationQuaternion.x, this.rotationQuaternion.y, this.rotationQuaternion.z, this.rotationQuaternion.w],
             vel: [this.forward.x * 3, this.forward.y * 3, this.forward.z * 3]
@@ -176,9 +222,11 @@ class SpaceshipController {
         this.spaceship = spaceship;
         spaceship.controller = this;
     }
+    onBeforeUpdateSpaceship() { }
+    onAfterUpdateSpaceship() { }
 }
 class SpaceshipNetworkController extends SpaceshipController {
-    updateController() {
+    onBeforeUpdateSpaceship() {
         this.spaceship.position.x = this.lastSpaceshipPosition.pos[0];
         this.spaceship.position.y = this.lastSpaceshipPosition.pos[1];
         this.spaceship.position.z = this.lastSpaceshipPosition.pos[2];
@@ -190,12 +238,15 @@ class SpaceshipNetworkController extends SpaceshipController {
 }
 /// <reference path="SpaceshipController.ts"/>
 class SpaceshipPhysicController extends SpaceshipController {
-    updateController() {
+    onBeforeUpdateSpaceship() {
         let dt = this.spaceship.getEngine().getDeltaTime() / 1000;
         this.spaceship.position.addInPlace(this.spaceship.forward.scale(dt * 3));
         let rollQuat = BABYLON.Quaternion.RotationAxis(this.spaceship.forward, this.spaceship.rollInput * dt * Math.PI);
         let pitchQuat = BABYLON.Quaternion.RotationAxis(this.spaceship.right, this.spaceship.pitchInput * dt * Math.PI);
         rollQuat.multiplyToRef(this.spaceship.rotationQuaternion, this.spaceship.rotationQuaternion);
         pitchQuat.multiplyToRef(this.spaceship.rotationQuaternion, this.spaceship.rotationQuaternion);
+    }
+    onAfterUpdateSpaceship() {
+        this.spaceship.main.networkManager.broadcastData(this.spaceship.getPositionData());
     }
 }
