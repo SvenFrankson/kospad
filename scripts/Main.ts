@@ -6,7 +6,7 @@ class Main {
     public canvas: HTMLCanvasElement;
     public engine: BABYLON.Engine;
     public scene: BABYLON.Scene;
-	public camera: BABYLON.FreeCamera;
+	public camera: BABYLON.ArcRotateCamera;
 
     constructor(canvasElement: string) {
         this.canvas = document.getElementById(canvasElement) as HTMLCanvasElement;
@@ -24,9 +24,14 @@ class Main {
 		this.scene = new BABYLON.Scene(this.engine);
 		this.scene.clearColor.copyFromFloats(158 / 255, 86 / 255, 55 / 255, 1);
 
-		this.camera = new BABYLON.FreeCamera("camera", BABYLON.Vector3.Zero(), this.scene);
+		this.camera = new BABYLON.ArcRotateCamera("camera", - Math.PI / 4, Math.PI / 4, 20, BABYLON.Vector3.Zero(), this.scene);
 		
 		BABYLON.Engine.ShadersRepository = "./shaders/";
+
+        let spaceship = new Spaceship("test-ship");
+        spaceship.instantiate();
+        spaceship.attachPilot(new FakeHuman());
+        spaceship.attachController(new SpaceshipPhysic());
 	}
 
     public animate(): void {

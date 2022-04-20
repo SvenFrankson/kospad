@@ -13,8 +13,12 @@ class Main {
     async initializeScene() {
         this.scene = new BABYLON.Scene(this.engine);
         this.scene.clearColor.copyFromFloats(158 / 255, 86 / 255, 55 / 255, 1);
-        this.camera = new BABYLON.FreeCamera("camera", BABYLON.Vector3.Zero(), this.scene);
+        this.camera = new BABYLON.ArcRotateCamera("camera", -Math.PI / 4, Math.PI / 4, 20, BABYLON.Vector3.Zero(), this.scene);
         BABYLON.Engine.ShadersRepository = "./shaders/";
+        let spaceship = new Spaceship("test-ship");
+        spaceship.instantiate();
+        spaceship.attachPilot(new FakeHuman());
+        spaceship.attachController(new SpaceshipPhysic());
     }
     animate() {
         this.engine.runRenderLoop(() => {
@@ -93,23 +97,64 @@ class ScreenLoger {
         ScreenLoger.container.appendChild(line);
     }
 }
+class Pilot {
+    constructor() {
+    }
+    attachToSpaceship(spaceship) {
+        this.spaceship = spaceship;
+        spaceship.pilot = this;
+    }
+}
+/// <reference path="Pilot.ts"/>
+class FakeHuman extends Pilot {
+    updatePilot() {
+        this.spaceship.pitchInput = 1;
+    }
+}
 class Spaceship extends BABYLON.Mesh {
     constructor(name) {
         super(name);
         this.rollInput = 0;
         this.pitchInput = 0;
         this._update = () => {
-            let dt = this.getEngine().getDeltaTime() / 1000;
-            this.position.addInPlace(this.forward.scale(dt * 3));
-            let rollQuat = BABYLON.Quaternion.RotationAxis(this.forward, this.rollInput * dt * Math.PI);
-            let pitchQuat = BABYLON.Quaternion.RotationAxis(this.right, this.pitchInput * dt * Math.PI);
-            rollQuat.multiplyToRef(this.rotationQuaternion, this.rotationQuaternion);
-            pitchQuat.multiplyToRef(this.rotationQuaternion, this.rotationQuaternion);
+            if (this.pilot) {
+                this.pilot.updatePilot();
+            }
+            if (this.controller) {
+                this.controller.updateController();
+            }
         };
+    }
+    attachPilot(pilot) {
+        this.pilot = pilot;
+        pilot.spaceship = this;
+    }
+    attachController(controller) {
+        this.controller = controller;
+        controller.spaceship = this;
     }
     instantiate() {
         BABYLON.VertexData.CreateBox({ width: 1, height: 0.5, depth: 2 }).applyToMesh(this);
         this.rotationQuaternion = BABYLON.Quaternion.Identity();
         this.getEngine().scenes[0].onBeforeRenderObservable.add(this._update);
+    }
+}
+class SpaceshipController {
+    constructor() {
+    }
+    attachToSpaceship(spaceship) {
+        this.spaceship = spaceship;
+        spaceship.controller = this;
+    }
+}
+/// <reference path="SpaceshipController.ts"/>
+class SpaceshipPhysic extends SpaceshipController {
+    updateController() {
+        let dt = this.spaceship.getEngine().getDeltaTime() / 1000;
+        this.spaceship.position.addInPlace(this.spaceship.forward.scale(dt * 3));
+        let rollQuat = BABYLON.Quaternion.RotationAxis(this.spaceship.forward, this.spaceship.rollInput * dt * Math.PI);
+        let pitchQuat = BABYLON.Quaternion.RotationAxis(this.spaceship.right, this.spaceship.pitchInput * dt * Math.PI);
+        rollQuat.multiplyToRef(this.spaceship.rotationQuaternion, this.spaceship.rotationQuaternion);
+        pitchQuat.multiplyToRef(this.spaceship.rotationQuaternion, this.spaceship.rotationQuaternion);
     }
 }
