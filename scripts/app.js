@@ -7,18 +7,20 @@ class Main {
     }
     async initialize() {
         await this.initializeScene();
-        let networkManager = new NetworkManager();
-        networkManager.initialize();
+        this.networkManager = new NetworkManager();
+        this.networkManager.initialize();
+        this.networkSpaceshipManager = new NetworkSpaceshipManager();
+        //this.networkSpaceshipManager.initialize();
+        let spaceship = new Spaceship("test-ship");
+        spaceship.instantiate();
+        spaceship.attachPilot(new FakeHuman());
+        spaceship.attachController(new SpaceshipPhysicController());
     }
     async initializeScene() {
         this.scene = new BABYLON.Scene(this.engine);
         this.scene.clearColor.copyFromFloats(158 / 255, 86 / 255, 55 / 255, 1);
         this.camera = new BABYLON.ArcRotateCamera("camera", -Math.PI / 4, Math.PI / 4, 20, BABYLON.Vector3.Zero(), this.scene);
         BABYLON.Engine.ShadersRepository = "./shaders/";
-        let spaceship = new Spaceship("test-ship");
-        spaceship.instantiate();
-        spaceship.attachPilot(new FakeHuman());
-        spaceship.attachController(new SpaceshipPhysic());
     }
     animate() {
         this.engine.runRenderLoop(() => {
@@ -34,7 +36,27 @@ window.addEventListener("load", async () => {
     await main.initialize();
     main.animate();
 });
-/// <reference path="../lib/peerjs.d.ts"/>
+class ScreenLoger {
+    static get container() {
+        if (!ScreenLoger._container) {
+            ScreenLoger._container = document.createElement("div");
+            ScreenLoger._container.id = "screen-loger-container";
+            document.body.appendChild(ScreenLoger._container);
+        }
+        return ScreenLoger._container;
+    }
+    static Log(s) {
+        let line = document.createElement("div");
+        line.classList.add("screen-loger-line");
+        line.innerText = s;
+        ScreenLoger.container.appendChild(line);
+    }
+}
+/// <reference path="../../lib/peerjs.d.ts"/>
+var NetworkDataType;
+(function (NetworkDataType) {
+    NetworkDataType[NetworkDataType["SpaceshipPosition"] = 1] = "SpaceshipPosition";
+})(NetworkDataType || (NetworkDataType = {}));
 class NetworkManager {
     constructor() {
         ScreenLoger.Log("Create NetworkManager");
@@ -74,6 +96,8 @@ class NetworkManager {
     onConnData(data, conn) {
         ScreenLoger.Log("Data received from other ID '" + conn.peer + "'");
         ScreenLoger.Log(data);
+        if (data.type === NetworkDataType.SpaceshipPosition) {
+        }
     }
     // debug
     onDebugOtherIdConnect() {
@@ -81,21 +105,7 @@ class NetworkManager {
         this.connectToPlayer(otherId);
     }
 }
-class ScreenLoger {
-    static get container() {
-        if (!ScreenLoger._container) {
-            ScreenLoger._container = document.createElement("div");
-            ScreenLoger._container.id = "screen-loger-container";
-            document.body.appendChild(ScreenLoger._container);
-        }
-        return ScreenLoger._container;
-    }
-    static Log(s) {
-        let line = document.createElement("div");
-        line.classList.add("screen-loger-line");
-        line.innerText = s;
-        ScreenLoger.container.appendChild(line);
-    }
+class NetworkSpaceshipManager {
 }
 class Pilot {
     constructor() {
@@ -107,8 +117,21 @@ class Pilot {
 }
 /// <reference path="Pilot.ts"/>
 class FakeHuman extends Pilot {
+    constructor() {
+        super(...arguments);
+        this._rollTimer = 0;
+    }
     updatePilot() {
+        let dt = this.spaceship.getEngine().getDeltaTime() / 1000;
         this.spaceship.pitchInput = 1;
+        this.spaceship.rollInput = 0;
+        if (this._rollTimer < 0) {
+            this._rollTimer = 2 + 4 * Math.random();
+        }
+        else if (this._rollTimer < 1) {
+            this.spaceship.rollInput = 1;
+        }
+        this._rollTimer -= dt;
     }
 }
 class Spaceship extends BABYLON.Mesh {
@@ -138,6 +161,13 @@ class Spaceship extends BABYLON.Mesh {
         this.rotationQuaternion = BABYLON.Quaternion.Identity();
         this.getEngine().scenes[0].onBeforeRenderObservable.add(this._update);
     }
+    getPositionData() {
+        return {
+            pos: [this.position.x, this.position.y, this.position.z],
+            quat: [this.rotationQuaternion.x, this.rotationQuaternion.y, this.rotationQuaternion.z, this.rotationQuaternion.w],
+            vel: [this.forward.x * 3, this.forward.y * 3, this.forward.z * 3]
+        };
+    }
 }
 class SpaceshipController {
     constructor() {
@@ -147,8 +177,19 @@ class SpaceshipController {
         spaceship.controller = this;
     }
 }
+class SpaceshipNetworkController extends SpaceshipController {
+    updateController() {
+        this.spaceship.position.x = this.lastSpaceshipPosition.pos[0];
+        this.spaceship.position.y = this.lastSpaceshipPosition.pos[1];
+        this.spaceship.position.z = this.lastSpaceshipPosition.pos[2];
+        this.spaceship.rotationQuaternion.x = this.lastSpaceshipPosition.quat[0];
+        this.spaceship.rotationQuaternion.y = this.lastSpaceshipPosition.quat[1];
+        this.spaceship.rotationQuaternion.z = this.lastSpaceshipPosition.quat[2];
+        this.spaceship.rotationQuaternion.w = this.lastSpaceshipPosition.quat[3];
+    }
+}
 /// <reference path="SpaceshipController.ts"/>
-class SpaceshipPhysic extends SpaceshipController {
+class SpaceshipPhysicController extends SpaceshipController {
     updateController() {
         let dt = this.spaceship.getEngine().getDeltaTime() / 1000;
         this.spaceship.position.addInPlace(this.spaceship.forward.scale(dt * 3));

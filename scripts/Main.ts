@@ -7,6 +7,8 @@ class Main {
     public engine: BABYLON.Engine;
     public scene: BABYLON.Scene;
 	public camera: BABYLON.ArcRotateCamera;
+    public networkManager: NetworkManager;
+    public networkSpaceshipManager: NetworkSpaceshipManager;
 
     constructor(canvasElement: string) {
         this.canvas = document.getElementById(canvasElement) as HTMLCanvasElement;
@@ -16,8 +18,16 @@ class Main {
 	public async initialize(): Promise<void> {
 		await this.initializeScene();
 
-        let networkManager = new NetworkManager();
-        networkManager.initialize();
+        this.networkManager = new NetworkManager();
+        this.networkManager.initialize();
+
+        this.networkSpaceshipManager = new NetworkSpaceshipManager();
+        //this.networkSpaceshipManager.initialize();
+
+        let spaceship = new Spaceship("test-ship");
+        spaceship.instantiate();
+        spaceship.attachPilot(new FakeHuman());
+        spaceship.attachController(new SpaceshipPhysicController());
 	}
 
     public async initializeScene(): Promise<void> {
@@ -27,11 +37,6 @@ class Main {
 		this.camera = new BABYLON.ArcRotateCamera("camera", - Math.PI / 4, Math.PI / 4, 20, BABYLON.Vector3.Zero(), this.scene);
 		
 		BABYLON.Engine.ShadersRepository = "./shaders/";
-
-        let spaceship = new Spaceship("test-ship");
-        spaceship.instantiate();
-        spaceship.attachPilot(new FakeHuman());
-        spaceship.attachController(new SpaceshipPhysic());
 	}
 
     public animate(): void {

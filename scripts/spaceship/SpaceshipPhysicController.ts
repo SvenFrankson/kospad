@@ -1,6 +1,6 @@
 /// <reference path="SpaceshipController.ts"/>
 
-class SpaceshipPhysic extends SpaceshipController {
+class SpaceshipPhysicController extends SpaceshipController {
 
     public updateController(): void {
         let dt = this.spaceship.getEngine().getDeltaTime() / 1000;

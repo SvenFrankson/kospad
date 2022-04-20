@@ -1,4 +1,8 @@
-/// <reference path="../lib/peerjs.d.ts"/>
+/// <reference path="../../lib/peerjs.d.ts"/>
+
+enum NetworkDataType {
+    SpaceshipPosition = 1
+}
 
 class NetworkManager {
 
@@ -60,6 +64,9 @@ class NetworkManager {
     public onConnData(data: any, conn: Peer.DataConnection): void {
         ScreenLoger.Log("Data received from other ID '" + conn.peer + "'");
         ScreenLoger.Log(data);
+        if (data.type === NetworkDataType.SpaceshipPosition) {
+            
+        }
     }
 
     // debug
