@@ -2,7 +2,9 @@ abstract class Pilot {
 
     public spaceship: Spaceship;
 
-    constructor() {
+    constructor(
+        public main: Main
+    ) {
 
     }
 

@@ -13,8 +13,13 @@ class Main {
         this.networkSpaceshipManager.initialize();
         let spaceship = new Spaceship("test-ship", this);
         spaceship.instantiate();
-        spaceship.attachPilot(new FakeHuman());
         spaceship.attachController(new SpaceshipPhysicController());
+        let pilot = new HumanPilot(this);
+        pilot.initialize();
+        let hud = new Hud(this);
+        hud.initialize();
+        pilot.attachHud(hud);
+        spaceship.attachPilot(pilot);
     }
     async initializeScene() {
         this.scene = new BABYLON.Scene(this.engine);
@@ -156,7 +161,8 @@ class NetworkSpaceshipManager {
     }
 }
 class Pilot {
-    constructor() {
+    constructor(main) {
+        this.main = main;
     }
     attachToSpaceship(spaceship) {
         this.spaceship = spaceship;
@@ -164,7 +170,7 @@ class Pilot {
     }
 }
 /// <reference path="Pilot.ts"/>
-class FakeHuman extends Pilot {
+class FakeHumanPilot extends Pilot {
     constructor() {
         super(...arguments);
         this._rollTimer = 0;
@@ -180,6 +186,24 @@ class FakeHuman extends Pilot {
             this.spaceship.rollInput = 1;
         }
         this._rollTimer -= dt;
+    }
+}
+/// <reference path="Pilot.ts"/>
+class HumanPilot extends Pilot {
+    initialize() {
+        this.main.canvas.addEventListener("pointermove", (ev) => {
+            let x = ev.clientX;
+            let y = ev.clientY;
+            let dx = (x - this.hud.clientWidth * 0.5) / (this.hud.size * 0.5 * this.hud.outerCircleRadius / 500);
+            let dy = -(y - this.hud.clientHeight * 0.5) / (this.hud.size * 0.5 * this.hud.outerCircleRadius / 500);
+            this.hud.setYawInput(dx);
+            this.hud.setPitchInput(dy);
+        });
+    }
+    attachHud(hud) {
+        this.hud = hud;
+    }
+    updatePilot() {
     }
 }
 class Spaceship extends BABYLON.Mesh {
@@ -260,5 +284,62 @@ class SpaceshipPhysicController extends SpaceshipController {
     }
     onAfterUpdateSpaceship() {
         this.spaceship.main.networkManager.broadcastData(this.spaceship.getPositionData());
+    }
+}
+class Hud {
+    constructor(main) {
+        this.main = main;
+        this.clientWidth = 1;
+        this.clientHeight = 1;
+        this.size = 1;
+        this.outerCircleRadius = 400;
+    }
+    initialize() {
+        let svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        svg.setAttribute("viewBox", "0 0 1000 1000");
+        this.clientWidth = document.body.clientWidth;
+        this.clientHeight = document.body.clientHeight;
+        let ratio = this.clientWidth / this.clientHeight;
+        if (ratio > 1) {
+            this.size = this.clientHeight * 0.5;
+        }
+        else {
+            this.size = this.clientWidth * 0.5;
+        }
+        svg.style.display = "block";
+        svg.style.position = "fixed";
+        svg.style.width = this.size.toFixed(0) + "px";
+        svg.style.height = this.size.toFixed(0) + "px";
+        svg.style.zIndex = "2";
+        svg.style.left = ((this.clientWidth - this.size) * 0.5).toFixed(0) + "px";
+        svg.style.top = ((this.clientHeight - this.size) * 0.5).toFixed(0) + "px";
+        svg.style.pointerEvents = "none";
+        document.body.appendChild(svg);
+        let outerCircle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        outerCircle.setAttribute("cx", "500");
+        outerCircle.setAttribute("cy", "500");
+        outerCircle.setAttribute("r", this.outerCircleRadius.toFixed(0));
+        outerCircle.setAttribute("fill", "none");
+        outerCircle.setAttribute("stroke-width", "4");
+        outerCircle.setAttribute("stroke", "white");
+        svg.appendChild(outerCircle);
+        this.reticle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        this.reticle.setAttribute("cx", "500");
+        this.reticle.setAttribute("cy", "500");
+        this.reticle.setAttribute("r", "50");
+        this.reticle.setAttribute("fill", "none");
+        this.reticle.setAttribute("stroke-width", "4");
+        this.reticle.setAttribute("stroke", "white");
+        svg.appendChild(this.reticle);
+    }
+    setYawInput(input) {
+        input = Math.min(Math.max(input, -1), 1);
+        let cx = 500 + input * this.outerCircleRadius;
+        this.reticle.setAttribute("cx", cx.toFixed(1));
+    }
+    setPitchInput(input) {
+        input = Math.min(Math.max(input, -1), 1);
+        let cy = 500 - input * this.outerCircleRadius;
+        this.reticle.setAttribute("cy", cy.toFixed(1));
     }
 }

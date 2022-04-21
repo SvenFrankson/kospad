@@ -26,8 +26,15 @@ class Main {
 
         let spaceship = new Spaceship("test-ship", this);
         spaceship.instantiate();
-        spaceship.attachPilot(new FakeHuman());
         spaceship.attachController(new SpaceshipPhysicController());
+
+		let pilot = new HumanPilot(this);
+		pilot.initialize();
+		let hud = new Hud(this);
+		hud.initialize();
+		pilot.attachHud(hud);
+
+        spaceship.attachPilot(pilot);
 	}
 
     public async initializeScene(): Promise<void> {
