@@ -6,7 +6,7 @@ class Main {
     public canvas: HTMLCanvasElement;
     public engine: BABYLON.Engine;
     public scene: BABYLON.Scene;
-	public camera: BABYLON.ArcRotateCamera;
+	public camera: BABYLON.FreeCamera;
     public networkManager: NetworkManager;
     public networkSpaceshipManager: NetworkSpaceshipManager;
 
@@ -41,8 +41,10 @@ class Main {
 		this.scene = new BABYLON.Scene(this.engine);
 		this.scene.clearColor.copyFromFloats(158 / 255, 86 / 255, 55 / 255, 1);
 
-		this.camera = new BABYLON.ArcRotateCamera("camera", - Math.PI / 4, Math.PI / 4, 20, BABYLON.Vector3.Zero(), this.scene);
-        this.camera.attachControl(this.canvas);
+		//this.camera = new BABYLON.ArcRotateCamera("camera", - Math.PI / 4, Math.PI / 4, 20, BABYLON.Vector3.Zero(), this.scene);
+        //this.camera.attachControl(this.canvas);
+		this.camera = new BABYLON.FreeCamera("camera", BABYLON.Vector3.Zero(), this.scene);
+		this.camera.rotationQuaternion = BABYLON.Quaternion.Identity();
 		
 		BABYLON.Engine.ShadersRepository = "./shaders/";
 

@@ -20,10 +20,10 @@ class Hud {
         this.clientHeight = document.body.clientHeight;
         let ratio = this.clientWidth / this.clientHeight;
         if (ratio > 1) {
-            this.size = this.clientHeight * 0.5;
+            this.size = this.clientHeight * 0.7;
         }
         else {
-            this.size = this.clientWidth * 0.5;
+            this.size = this.clientWidth * 0.7;
         }
 
         svg.style.display = "block";
@@ -58,14 +58,14 @@ class Hud {
         svg.appendChild(this.reticle);
     }
 
-    public setYawInput(input: number): void {
+    public setXInput(input: number): void {
         input = Math.min(Math.max(input, - 1), 1);
 
         let cx = 500 + input * this.outerCircleRadius;
         this.reticle.setAttribute("cx", cx.toFixed(1));
     }
 
-    public setPitchInput(input: number): void {
+    public setYInput(input: number): void {
         input = Math.min(Math.max(input, - 1), 1);
 
         let cy = 500 - input * this.outerCircleRadius;

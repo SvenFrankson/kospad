@@ -24,8 +24,10 @@ class Main {
     async initializeScene() {
         this.scene = new BABYLON.Scene(this.engine);
         this.scene.clearColor.copyFromFloats(158 / 255, 86 / 255, 55 / 255, 1);
-        this.camera = new BABYLON.ArcRotateCamera("camera", -Math.PI / 4, Math.PI / 4, 20, BABYLON.Vector3.Zero(), this.scene);
-        this.camera.attachControl(this.canvas);
+        //this.camera = new BABYLON.ArcRotateCamera("camera", - Math.PI / 4, Math.PI / 4, 20, BABYLON.Vector3.Zero(), this.scene);
+        //this.camera.attachControl(this.canvas);
+        this.camera = new BABYLON.FreeCamera("camera", BABYLON.Vector3.Zero(), this.scene);
+        this.camera.rotationQuaternion = BABYLON.Quaternion.Identity();
         BABYLON.Engine.ShadersRepository = "./shaders/";
         let skybox = BABYLON.MeshBuilder.CreateBox("skyBox", { size: 2000.0 }, this.scene);
         skybox.rotation.y = Math.PI / 2;
@@ -196,14 +198,21 @@ class HumanPilot extends Pilot {
             let y = ev.clientY;
             let dx = (x - this.hud.clientWidth * 0.5) / (this.hud.size * 0.5 * this.hud.outerCircleRadius / 500);
             let dy = -(y - this.hud.clientHeight * 0.5) / (this.hud.size * 0.5 * this.hud.outerCircleRadius / 500);
-            this.hud.setYawInput(dx);
-            this.hud.setPitchInput(dy);
+            this.spaceship.rollInput = Math.min(Math.max(-1, dx), 1);
+            this.spaceship.pitchInput = Math.min(Math.max(-1, dy), 1);
         });
     }
     attachHud(hud) {
         this.hud = hud;
     }
     updatePilot() {
+        let camPos = this.spaceship.position.clone();
+        camPos.addInPlace(this.spaceship.up.scale(2));
+        camPos.addInPlace(this.spaceship.forward.scale(-10));
+        this.main.camera.position.scaleInPlace(19).addInPlace(camPos).scaleInPlace(0.05);
+        BABYLON.Quaternion.SlerpToRef(this.main.camera.rotationQuaternion, this.spaceship.rotationQuaternion, 0.05, this.main.camera.rotationQuaternion);
+        this.hud.setXInput(this.spaceship.rollInput);
+        this.hud.setYInput(this.spaceship.pitchInput);
     }
 }
 class Spaceship extends BABYLON.Mesh {
@@ -277,8 +286,8 @@ class SpaceshipPhysicController extends SpaceshipController {
     onBeforeUpdateSpaceship() {
         let dt = this.spaceship.getEngine().getDeltaTime() / 1000;
         this.spaceship.position.addInPlace(this.spaceship.forward.scale(dt * 3));
-        let rollQuat = BABYLON.Quaternion.RotationAxis(this.spaceship.forward, this.spaceship.rollInput * dt * Math.PI);
-        let pitchQuat = BABYLON.Quaternion.RotationAxis(this.spaceship.right, this.spaceship.pitchInput * dt * Math.PI);
+        let rollQuat = BABYLON.Quaternion.RotationAxis(this.spaceship.forward, -this.spaceship.rollInput * dt * Math.PI * 0.5);
+        let pitchQuat = BABYLON.Quaternion.RotationAxis(this.spaceship.right, -this.spaceship.pitchInput * dt * Math.PI * 0.5);
         rollQuat.multiplyToRef(this.spaceship.rotationQuaternion, this.spaceship.rotationQuaternion);
         pitchQuat.multiplyToRef(this.spaceship.rotationQuaternion, this.spaceship.rotationQuaternion);
     }
@@ -301,10 +310,10 @@ class Hud {
         this.clientHeight = document.body.clientHeight;
         let ratio = this.clientWidth / this.clientHeight;
         if (ratio > 1) {
-            this.size = this.clientHeight * 0.5;
+            this.size = this.clientHeight * 0.7;
         }
         else {
-            this.size = this.clientWidth * 0.5;
+            this.size = this.clientWidth * 0.7;
         }
         svg.style.display = "block";
         svg.style.position = "fixed";
@@ -332,12 +341,12 @@ class Hud {
         this.reticle.setAttribute("stroke", "white");
         svg.appendChild(this.reticle);
     }
-    setYawInput(input) {
+    setXInput(input) {
         input = Math.min(Math.max(input, -1), 1);
         let cx = 500 + input * this.outerCircleRadius;
         this.reticle.setAttribute("cx", cx.toFixed(1));
     }
-    setPitchInput(input) {
+    setYInput(input) {
         input = Math.min(Math.max(input, -1), 1);
         let cy = 500 - input * this.outerCircleRadius;
         this.reticle.setAttribute("cy", cy.toFixed(1));
