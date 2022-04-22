@@ -31,6 +31,7 @@ class Main {
 		let pilot = new HumanPilot(this);
 		pilot.initializeTouchScreen();
 		pilot.initialize();
+		
 		let hud = new Hud(this);
 		hud.initialize();
 		pilot.attachHud(hud);

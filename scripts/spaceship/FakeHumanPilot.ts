@@ -1,6 +1,7 @@
 /// <reference path="Pilot.ts"/>
+/// <reference path="HumanPilot.ts"/>
 
-class FakeHumanPilot extends Pilot {
+class FakeHumanPilot extends HumanPilot {
     
     private _rollTimer: number = 0;
 

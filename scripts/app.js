@@ -173,7 +173,34 @@ class Pilot {
     }
 }
 /// <reference path="Pilot.ts"/>
-class FakeHumanPilot extends Pilot {
+class HumanPilot extends Pilot {
+    initialize() {
+    }
+    initializeDesktop() {
+        let input = new PlayerInputMouse(this);
+        input.connectInput();
+    }
+    initializeTouchScreen() {
+        let input = new PlayerInputVirtualPad(this);
+        input.connectInput();
+    }
+    attachHud(hud) {
+        this.hud = hud;
+        hud.pilot = this;
+    }
+    updatePilot() {
+        let camPos = this.spaceship.position.clone();
+        camPos.addInPlace(this.spaceship.up.scale(2));
+        camPos.addInPlace(this.spaceship.forward.scale(-10));
+        this.main.camera.position.scaleInPlace(19).addInPlace(camPos).scaleInPlace(0.05);
+        BABYLON.Quaternion.SlerpToRef(this.main.camera.rotationQuaternion, this.spaceship.rotationQuaternion, 0.05, this.main.camera.rotationQuaternion);
+        this.hud.setXInput(this.spaceship.yawInput);
+        this.hud.setYInput(this.spaceship.pitchInput);
+    }
+}
+/// <reference path="Pilot.ts"/>
+/// <reference path="HumanPilot.ts"/>
+class FakeHumanPilot extends HumanPilot {
     constructor() {
         super(...arguments);
         this._rollTimer = 0;
@@ -189,162 +216,6 @@ class FakeHumanPilot extends Pilot {
             this.spaceship.rollInput = 1;
         }
         this._rollTimer -= dt;
-    }
-}
-/// <reference path="Pilot.ts"/>
-class PlayerInput {
-    constructor(pilot) {
-        this.pilot = pilot;
-        this.main = pilot.main;
-    }
-    connectInput() {
-    }
-}
-class PlayerInputMouse extends PlayerInput {
-    connectInput() {
-        this.main.canvas.addEventListener("pointermove", (ev) => {
-            let x = ev.clientX;
-            let y = ev.clientY;
-            let dx = (x - this.pilot.hud.clientWidth * 0.5) / (this.pilot.hud.size * 0.5 * this.pilot.hud.outerCircleRadius / 500);
-            let dy = -(y - this.pilot.hud.clientHeight * 0.5) / (this.pilot.hud.size * 0.5 * this.pilot.hud.outerCircleRadius / 500);
-            this.pilot.spaceship.yawInput = Math.min(Math.max(-1, dx), 1);
-            this.pilot.spaceship.pitchInput = Math.min(Math.max(-1, dy), 1);
-        });
-    }
-}
-class PlayerInputVirtualJoystick extends PlayerInput {
-    constructor() {
-        super(...arguments);
-        this.clientWidth = 1;
-        this.clientHeight = 1;
-        this.size = 1;
-        this.outerCircleRadius = 500;
-    }
-    connectInput() {
-        let svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-        svg.setAttribute("viewBox", "0 0 1000 1000");
-        this.clientWidth = document.body.clientWidth;
-        this.clientHeight = document.body.clientHeight;
-        let ratio = this.clientWidth / this.clientHeight;
-        if (ratio > 1) {
-            this.size = this.clientHeight * 0.25;
-        }
-        else {
-            this.size = this.clientWidth * 0.25;
-        }
-        svg.style.display = "block";
-        svg.style.position = "fixed";
-        svg.style.width = this.size.toFixed(0) + "px";
-        svg.style.height = this.size.toFixed(0) + "px";
-        svg.style.zIndex = "2";
-        svg.style.right = "50px";
-        svg.style.bottom = "50px";
-        svg.style.pointerEvents = "none";
-        document.body.appendChild(svg);
-        let outerCircle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-        outerCircle.setAttribute("cx", "500");
-        outerCircle.setAttribute("cy", "500");
-        outerCircle.setAttribute("r", this.outerCircleRadius.toFixed(0));
-        outerCircle.setAttribute("fill", "none");
-        outerCircle.setAttribute("stroke-width", "4");
-        outerCircle.setAttribute("stroke", "white");
-        svg.appendChild(outerCircle);
-        this.reticle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-        this.reticle.setAttribute("cx", "500");
-        this.reticle.setAttribute("cy", "500");
-        this.reticle.setAttribute("r", (this.outerCircleRadius * 0.5).toFixed(0));
-        this.reticle.setAttribute("fill", "none");
-        this.reticle.setAttribute("stroke-width", "4");
-        this.reticle.setAttribute("stroke", "white");
-        svg.appendChild(this.reticle);
-        let centerX = this.clientWidth - this.size * 0.5 - 50;
-        let centerY = this.clientHeight - this.size * 0.5 - 50;
-        let pointerDown = false;
-        this.main.canvas.addEventListener("pointerdown", (ev) => {
-            let x = ev.clientX;
-            let y = ev.clientY;
-            let dx = (x - centerX) / (this.size * 0.5);
-            let dy = (y - centerY) / (this.size * 0.5);
-            if (dx * dx + dy * dy < 1) {
-                pointerDown = true;
-                let cx = 500 + dx * 250;
-                this.reticle.setAttribute("cx", cx.toFixed(1));
-                let cy = 500 + dy * 250;
-                this.reticle.setAttribute("cy", cy.toFixed(1));
-                this.pilot.spaceship.yawInput = Math.min(Math.max(-1, dx), 1);
-                this.pilot.spaceship.pitchInput = Math.min(Math.max(-1, dy), 1);
-                this.pilot.hud.setXInput(this.pilot.spaceship.yawInput);
-                this.pilot.hud.setYInput(this.pilot.spaceship.pitchInput);
-            }
-        });
-        this.main.canvas.addEventListener("pointermove", (ev) => {
-            if (pointerDown) {
-                let x = ev.clientX;
-                let y = ev.clientY;
-                let dx = (x - centerX) / (this.size * 0.5);
-                let dy = (y - centerY) / (this.size * 0.5);
-                if (dx * dx + dy * dy < 1) {
-                    let cx = 500 + dx * 250;
-                    this.reticle.setAttribute("cx", cx.toFixed(1));
-                    let cy = 500 + dy * 250;
-                    this.reticle.setAttribute("cy", cy.toFixed(1));
-                    this.pilot.spaceship.yawInput = Math.min(Math.max(-1, dx), 1);
-                    this.pilot.spaceship.pitchInput = Math.min(Math.max(-1, dy), 1);
-                    this.pilot.hud.setXInput(this.pilot.spaceship.yawInput);
-                    this.pilot.hud.setYInput(this.pilot.spaceship.pitchInput);
-                }
-                else if (dx * dx + dy * dy > 4) {
-                    pointerDown = false;
-                    let cx = 500 + dx * 250;
-                    this.reticle.setAttribute("cx", cx.toFixed(1));
-                    let cy = 500 + dy * 250;
-                    this.reticle.setAttribute("cy", cy.toFixed(1));
-                    this.pilot.spaceship.yawInput = 0;
-                    this.pilot.spaceship.pitchInput = 0;
-                    this.pilot.hud.setXInput(this.pilot.spaceship.yawInput);
-                    this.pilot.hud.setYInput(this.pilot.spaceship.pitchInput);
-                }
-            }
-        });
-        this.main.canvas.addEventListener("pointerup", (ev) => {
-            let x = ev.clientX;
-            let y = ev.clientY;
-            let dx = (x - centerX) / (this.size * 0.5);
-            let dy = (y - centerY) / (this.size * 0.5);
-            if (dx * dx + dy * dy < 4) {
-                pointerDown = false;
-                this.reticle.setAttribute("cx", "500");
-                this.reticle.setAttribute("cy", "500");
-                this.pilot.spaceship.yawInput = 0;
-                this.pilot.spaceship.pitchInput = 0;
-                this.pilot.hud.setXInput(this.pilot.spaceship.yawInput);
-                this.pilot.hud.setYInput(this.pilot.spaceship.pitchInput);
-            }
-        });
-    }
-}
-class HumanPilot extends Pilot {
-    initialize() {
-    }
-    initializeDesktop() {
-        let input = new PlayerInputMouse(this);
-        input.connectInput();
-    }
-    initializeTouchScreen() {
-        let input = new PlayerInputVirtualJoystick(this);
-        input.connectInput();
-    }
-    attachHud(hud) {
-        this.hud = hud;
-    }
-    updatePilot() {
-        let camPos = this.spaceship.position.clone();
-        camPos.addInPlace(this.spaceship.up.scale(2));
-        camPos.addInPlace(this.spaceship.forward.scale(-10));
-        this.main.camera.position.scaleInPlace(19).addInPlace(camPos).scaleInPlace(0.05);
-        BABYLON.Quaternion.SlerpToRef(this.main.camera.rotationQuaternion, this.spaceship.rotationQuaternion, 0.05, this.main.camera.rotationQuaternion);
-        this.hud.setXInput(this.spaceship.yawInput);
-        this.hud.setYInput(this.spaceship.pitchInput);
     }
 }
 class Spaceship extends BABYLON.Mesh {
@@ -444,6 +315,10 @@ class Hud {
         this.clientHeight = 1;
         this.size = 1;
         this.outerCircleRadius = 400;
+        this._update = () => {
+            this.setXInput(this.pilot.spaceship.yawInput);
+            this.setYInput(this.pilot.spaceship.pitchInput);
+        };
     }
     initialize() {
         let svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
@@ -482,6 +357,11 @@ class Hud {
         this.reticle.setAttribute("stroke-width", "4");
         this.reticle.setAttribute("stroke", "white");
         svg.appendChild(this.reticle);
+        this.main.scene.onBeforeRenderObservable.add(this._update);
+    }
+    attachPilot(pilot) {
+        this.pilot = pilot;
+        pilot.hud = this;
     }
     setXInput(input) {
         input = Math.min(Math.max(input, -1), 1);
@@ -492,5 +372,159 @@ class Hud {
         input = Math.min(Math.max(input, -1), 1);
         let cy = 500 - input * this.outerCircleRadius;
         this.reticle.setAttribute("cy", cy.toFixed(1));
+    }
+}
+class PlayerInput {
+    constructor(pilot) {
+        this.pilot = pilot;
+        this.main = pilot.main;
+    }
+    connectInput() {
+    }
+}
+/// <reference path="PlayerInput.ts"/>
+class PlayerInputMouse extends PlayerInput {
+    connectInput() {
+        this.main.canvas.addEventListener("pointermove", (ev) => {
+            let x = ev.clientX;
+            let y = ev.clientY;
+            let dx = (x - this.pilot.hud.clientWidth * 0.5) / (this.pilot.hud.size * 0.5 * this.pilot.hud.outerCircleRadius / 500);
+            let dy = -(y - this.pilot.hud.clientHeight * 0.5) / (this.pilot.hud.size * 0.5 * this.pilot.hud.outerCircleRadius / 500);
+            this.pilot.spaceship.yawInput = Math.min(Math.max(-1, dx), 1);
+            this.pilot.spaceship.pitchInput = Math.min(Math.max(-1, dy), 1);
+        });
+    }
+}
+/// <reference path="PlayerInput.ts"/>
+class PlayerInputVirtualPad extends PlayerInput {
+    constructor() {
+        super(...arguments);
+        this.clientWidth = 100;
+        this.clientHeight = 100;
+        this.size = 10;
+        this.marginLeft = 10;
+        this.marginBottom = 10;
+        this.centerX = 20;
+        this.centerY = 20;
+        this._pointerDown = false;
+        this._dx = 0;
+        this._dy = 0;
+        this._update = () => {
+            if (!this._pointerDown) {
+                if (Math.abs(this._dx) > 0.001 || Math.abs(this._dy) > 0.001) {
+                    this._dx *= 0.9;
+                    this._dy *= 0.9;
+                    if (Math.abs(this._dx) > 0.001 || Math.abs(this._dy) > 0.001) {
+                        this.updatePad(this._dx, this._dy);
+                        this.updatePilot(this._dx, this._dy);
+                    }
+                    else {
+                        this.updatePad(0, 0);
+                        this.updatePilot(0, 0);
+                    }
+                }
+            }
+        };
+    }
+    connectInput() {
+        let svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        svg.setAttribute("viewBox", "0 0 1000 1000");
+        this.clientWidth = document.body.clientWidth;
+        this.clientHeight = document.body.clientHeight;
+        let ratio = this.clientWidth / this.clientHeight;
+        if (ratio > 1) {
+            this.size = this.clientHeight * 0.25;
+        }
+        else {
+            this.size = this.clientWidth * 0.25;
+        }
+        let margin = Math.min(50, this.size * 0.3);
+        svg.style.display = "block";
+        svg.style.position = "fixed";
+        svg.style.width = this.size.toFixed(0) + "px";
+        svg.style.height = this.size.toFixed(0) + "px";
+        svg.style.zIndex = "2";
+        svg.style.right = margin.toFixed(0) + "px";
+        svg.style.bottom = margin.toFixed(0) + "px";
+        svg.style.overflow = "visible";
+        svg.style.pointerEvents = "none";
+        document.body.appendChild(svg);
+        let base = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        base.setAttribute("cx", "500");
+        base.setAttribute("cy", "500");
+        base.setAttribute("r", "500");
+        base.setAttribute("fill", "white");
+        base.setAttribute("fill-opacity", "10%");
+        base.setAttribute("stroke-width", "4");
+        base.setAttribute("stroke", "white");
+        svg.appendChild(base);
+        this.pad = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        this.pad.setAttribute("cx", "500");
+        this.pad.setAttribute("cy", "500");
+        this.pad.setAttribute("r", "250");
+        this.pad.setAttribute("fill", "white");
+        this.pad.setAttribute("fill-opacity", "50%");
+        this.pad.setAttribute("stroke-width", "4");
+        this.pad.setAttribute("stroke", "white");
+        svg.appendChild(this.pad);
+        this.centerX = this.clientWidth - this.size * 0.5 - margin;
+        this.centerY = this.clientHeight - this.size * 0.5 - margin;
+        this.main.canvas.addEventListener("pointerdown", (ev) => {
+            this._dx = this.clientXToDX(ev.clientX);
+            this._dy = this.clientYToDY(ev.clientY);
+            if (this._dx * this._dx + this._dy * this._dy < 1) {
+                this._pointerDown = true;
+                this.updatePad(this._dx, this._dy);
+                this.updatePilot(this._dx, this._dy);
+            }
+        });
+        this.main.canvas.addEventListener("pointermove", (ev) => {
+            if (this._pointerDown) {
+                this._dx = this.clientXToDX(ev.clientX);
+                this._dy = this.clientYToDY(ev.clientY);
+                if (this._dx * this._dx + this._dy * this._dy < 1) {
+                    this.updatePad(this._dx, this._dy);
+                    this.updatePilot(this._dx, this._dy);
+                }
+                else if (this._dx * this._dx + this._dy * this._dy < 4) {
+                    let l = Math.sqrt(this._dx * this._dx + this._dy * this._dy);
+                    this._dx = this._dx / l;
+                    this._dy = this._dy / l;
+                    this.updatePad(this._dx, this._dy);
+                    this.updatePilot(this._dx, this._dy);
+                }
+                else if (this._dx * this._dx + this._dy * this._dy > 4) {
+                    /*
+                    this._pointerDown = false;
+                    this.updatePad(0, 0);
+                    this.updatePilot(0, 0);
+                    */
+                }
+            }
+        });
+        this.main.canvas.addEventListener("pointerup", (ev) => {
+            this._dx = this.clientXToDX(ev.clientX);
+            this._dy = this.clientYToDY(ev.clientY);
+            if (this._dx * this._dx + this._dy * this._dy < 4) {
+                this._pointerDown = false;
+            }
+        });
+        this.main.scene.onBeforeRenderObservable.add(this._update);
+    }
+    clientXToDX(clientX) {
+        return (clientX - this.centerX) / (this.size * 0.5);
+    }
+    clientYToDY(clientY) {
+        return (clientY - this.centerY) / (this.size * 0.5);
+    }
+    updatePad(dx, dy) {
+        let cx = 500 + dx * 250;
+        this.pad.setAttribute("cx", cx.toFixed(1));
+        let cy = 500 + dy * 250;
+        this.pad.setAttribute("cy", cy.toFixed(1));
+    }
+    updatePilot(dx, dy) {
+        this.pilot.spaceship.yawInput = Math.min(Math.max(-1, dx), 1);
+        this.pilot.spaceship.pitchInput = Math.min(Math.max(-1, dy), 1);
     }
 }

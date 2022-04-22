@@ -1,5 +1,7 @@
 class Hud {
 
+    public pilot: Pilot;
+
     public clientWidth: number = 1;
     public clientHeight: number = 1;
     public size: number = 1;
@@ -56,6 +58,13 @@ class Hud {
         this.reticle.setAttribute("stroke", "white");      
         
         svg.appendChild(this.reticle);
+
+        this.main.scene.onBeforeRenderObservable.add(this._update);
+    }
+
+    public attachPilot(pilot: HumanPilot): void {
+        this.pilot = pilot;
+        pilot.hud = this;
     }
 
     public setXInput(input: number): void {
@@ -70,5 +79,10 @@ class Hud {
 
         let cy = 500 - input * this.outerCircleRadius;
         this.reticle.setAttribute("cy", cy.toFixed(1));
+    }
+
+    public _update = () => {
+        this.setXInput(this.pilot.spaceship.yawInput);
+        this.setYInput(this.pilot.spaceship.pitchInput);
     }
 }
