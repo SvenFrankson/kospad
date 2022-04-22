@@ -29,6 +29,7 @@ class Main {
         spaceship.attachController(new SpaceshipPhysicController());
 
 		let pilot = new HumanPilot(this);
+		pilot.initializeTouchScreen();
 		pilot.initialize();
 		let hud = new Hud(this);
 		hud.initialize();
@@ -39,7 +40,8 @@ class Main {
 
     public async initializeScene(): Promise<void> {
 		this.scene = new BABYLON.Scene(this.engine);
-		this.scene.clearColor.copyFromFloats(158 / 255, 86 / 255, 55 / 255, 1);
+		
+		let light = new BABYLON.HemisphericLight("sun", BABYLON.Vector3.One(), this.scene);
 
 		//this.camera = new BABYLON.ArcRotateCamera("camera", - Math.PI / 4, Math.PI / 4, 20, BABYLON.Vector3.Zero(), this.scene);
         //this.camera.attachControl(this.canvas);

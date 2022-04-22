@@ -15,6 +15,7 @@ class Main {
         spaceship.instantiate();
         spaceship.attachController(new SpaceshipPhysicController());
         let pilot = new HumanPilot(this);
+        pilot.initializeTouchScreen();
         pilot.initialize();
         let hud = new Hud(this);
         hud.initialize();
@@ -23,7 +24,7 @@ class Main {
     }
     async initializeScene() {
         this.scene = new BABYLON.Scene(this.engine);
-        this.scene.clearColor.copyFromFloats(158 / 255, 86 / 255, 55 / 255, 1);
+        let light = new BABYLON.HemisphericLight("sun", BABYLON.Vector3.One(), this.scene);
         //this.camera = new BABYLON.ArcRotateCamera("camera", - Math.PI / 4, Math.PI / 4, 20, BABYLON.Vector3.Zero(), this.scene);
         //this.camera.attachControl(this.canvas);
         this.camera = new BABYLON.FreeCamera("camera", BABYLON.Vector3.Zero(), this.scene);
@@ -191,16 +192,147 @@ class FakeHumanPilot extends Pilot {
     }
 }
 /// <reference path="Pilot.ts"/>
-class HumanPilot extends Pilot {
-    initialize() {
+class PlayerInput {
+    constructor(pilot) {
+        this.pilot = pilot;
+        this.main = pilot.main;
+    }
+    connectInput() {
+    }
+}
+class PlayerInputMouse extends PlayerInput {
+    connectInput() {
         this.main.canvas.addEventListener("pointermove", (ev) => {
             let x = ev.clientX;
             let y = ev.clientY;
-            let dx = (x - this.hud.clientWidth * 0.5) / (this.hud.size * 0.5 * this.hud.outerCircleRadius / 500);
-            let dy = -(y - this.hud.clientHeight * 0.5) / (this.hud.size * 0.5 * this.hud.outerCircleRadius / 500);
-            this.spaceship.rollInput = Math.min(Math.max(-1, dx), 1);
-            this.spaceship.pitchInput = Math.min(Math.max(-1, dy), 1);
+            let dx = (x - this.pilot.hud.clientWidth * 0.5) / (this.pilot.hud.size * 0.5 * this.pilot.hud.outerCircleRadius / 500);
+            let dy = -(y - this.pilot.hud.clientHeight * 0.5) / (this.pilot.hud.size * 0.5 * this.pilot.hud.outerCircleRadius / 500);
+            this.pilot.spaceship.yawInput = Math.min(Math.max(-1, dx), 1);
+            this.pilot.spaceship.pitchInput = Math.min(Math.max(-1, dy), 1);
         });
+    }
+}
+class PlayerInputVirtualJoystick extends PlayerInput {
+    constructor() {
+        super(...arguments);
+        this.clientWidth = 1;
+        this.clientHeight = 1;
+        this.size = 1;
+        this.outerCircleRadius = 500;
+    }
+    connectInput() {
+        let svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        svg.setAttribute("viewBox", "0 0 1000 1000");
+        this.clientWidth = document.body.clientWidth;
+        this.clientHeight = document.body.clientHeight;
+        let ratio = this.clientWidth / this.clientHeight;
+        if (ratio > 1) {
+            this.size = this.clientHeight * 0.25;
+        }
+        else {
+            this.size = this.clientWidth * 0.25;
+        }
+        svg.style.display = "block";
+        svg.style.position = "fixed";
+        svg.style.width = this.size.toFixed(0) + "px";
+        svg.style.height = this.size.toFixed(0) + "px";
+        svg.style.zIndex = "2";
+        svg.style.right = "50px";
+        svg.style.bottom = "50px";
+        svg.style.pointerEvents = "none";
+        document.body.appendChild(svg);
+        let outerCircle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        outerCircle.setAttribute("cx", "500");
+        outerCircle.setAttribute("cy", "500");
+        outerCircle.setAttribute("r", this.outerCircleRadius.toFixed(0));
+        outerCircle.setAttribute("fill", "none");
+        outerCircle.setAttribute("stroke-width", "4");
+        outerCircle.setAttribute("stroke", "white");
+        svg.appendChild(outerCircle);
+        this.reticle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        this.reticle.setAttribute("cx", "500");
+        this.reticle.setAttribute("cy", "500");
+        this.reticle.setAttribute("r", (this.outerCircleRadius * 0.5).toFixed(0));
+        this.reticle.setAttribute("fill", "none");
+        this.reticle.setAttribute("stroke-width", "4");
+        this.reticle.setAttribute("stroke", "white");
+        svg.appendChild(this.reticle);
+        let centerX = this.clientWidth - this.size * 0.5 - 50;
+        let centerY = this.clientHeight - this.size * 0.5 - 50;
+        let pointerDown = false;
+        this.main.canvas.addEventListener("pointerdown", (ev) => {
+            let x = ev.clientX;
+            let y = ev.clientY;
+            let dx = (x - centerX) / (this.size * 0.5);
+            let dy = (y - centerY) / (this.size * 0.5);
+            if (dx * dx + dy * dy < 1) {
+                pointerDown = true;
+                let cx = 500 + dx * 250;
+                this.reticle.setAttribute("cx", cx.toFixed(1));
+                let cy = 500 + dy * 250;
+                this.reticle.setAttribute("cy", cy.toFixed(1));
+                this.pilot.spaceship.yawInput = Math.min(Math.max(-1, dx), 1);
+                this.pilot.spaceship.pitchInput = Math.min(Math.max(-1, dy), 1);
+                this.pilot.hud.setXInput(this.pilot.spaceship.yawInput);
+                this.pilot.hud.setYInput(this.pilot.spaceship.pitchInput);
+            }
+        });
+        this.main.canvas.addEventListener("pointermove", (ev) => {
+            if (pointerDown) {
+                let x = ev.clientX;
+                let y = ev.clientY;
+                let dx = (x - centerX) / (this.size * 0.5);
+                let dy = (y - centerY) / (this.size * 0.5);
+                if (dx * dx + dy * dy < 1) {
+                    let cx = 500 + dx * 250;
+                    this.reticle.setAttribute("cx", cx.toFixed(1));
+                    let cy = 500 + dy * 250;
+                    this.reticle.setAttribute("cy", cy.toFixed(1));
+                    this.pilot.spaceship.yawInput = Math.min(Math.max(-1, dx), 1);
+                    this.pilot.spaceship.pitchInput = Math.min(Math.max(-1, dy), 1);
+                    this.pilot.hud.setXInput(this.pilot.spaceship.yawInput);
+                    this.pilot.hud.setYInput(this.pilot.spaceship.pitchInput);
+                }
+                else if (dx * dx + dy * dy > 4) {
+                    pointerDown = false;
+                    let cx = 500 + dx * 250;
+                    this.reticle.setAttribute("cx", cx.toFixed(1));
+                    let cy = 500 + dy * 250;
+                    this.reticle.setAttribute("cy", cy.toFixed(1));
+                    this.pilot.spaceship.yawInput = 0;
+                    this.pilot.spaceship.pitchInput = 0;
+                    this.pilot.hud.setXInput(this.pilot.spaceship.yawInput);
+                    this.pilot.hud.setYInput(this.pilot.spaceship.pitchInput);
+                }
+            }
+        });
+        this.main.canvas.addEventListener("pointerup", (ev) => {
+            let x = ev.clientX;
+            let y = ev.clientY;
+            let dx = (x - centerX) / (this.size * 0.5);
+            let dy = (y - centerY) / (this.size * 0.5);
+            if (dx * dx + dy * dy < 4) {
+                pointerDown = false;
+                this.reticle.setAttribute("cx", "500");
+                this.reticle.setAttribute("cy", "500");
+                this.pilot.spaceship.yawInput = 0;
+                this.pilot.spaceship.pitchInput = 0;
+                this.pilot.hud.setXInput(this.pilot.spaceship.yawInput);
+                this.pilot.hud.setYInput(this.pilot.spaceship.pitchInput);
+            }
+        });
+    }
+}
+class HumanPilot extends Pilot {
+    initialize() {
+    }
+    initializeDesktop() {
+        let input = new PlayerInputMouse(this);
+        input.connectInput();
+    }
+    initializeTouchScreen() {
+        let input = new PlayerInputVirtualJoystick(this);
+        input.connectInput();
     }
     attachHud(hud) {
         this.hud = hud;
@@ -211,7 +343,7 @@ class HumanPilot extends Pilot {
         camPos.addInPlace(this.spaceship.forward.scale(-10));
         this.main.camera.position.scaleInPlace(19).addInPlace(camPos).scaleInPlace(0.05);
         BABYLON.Quaternion.SlerpToRef(this.main.camera.rotationQuaternion, this.spaceship.rotationQuaternion, 0.05, this.main.camera.rotationQuaternion);
-        this.hud.setXInput(this.spaceship.rollInput);
+        this.hud.setXInput(this.spaceship.yawInput);
         this.hud.setYInput(this.spaceship.pitchInput);
     }
 }
@@ -219,8 +351,9 @@ class Spaceship extends BABYLON.Mesh {
     constructor(name, main) {
         super(name);
         this.main = main;
-        this.rollInput = 0;
+        this.yawInput = 0;
         this.pitchInput = 0;
+        this.rollInput = 0;
         this._update = () => {
             if (this.pilot) {
                 this.pilot.updatePilot();
@@ -236,6 +369,7 @@ class Spaceship extends BABYLON.Mesh {
         for (let i = 0; i < 16; i++) {
             this.guid += (Math.floor(Math.random() * 16)).toString(16);
         }
+        this.rotationQuaternion = BABYLON.Quaternion.Identity();
     }
     attachPilot(pilot) {
         this.pilot = pilot;
@@ -246,8 +380,13 @@ class Spaceship extends BABYLON.Mesh {
         controller.spaceship = this;
     }
     instantiate() {
-        BABYLON.VertexData.CreateBox({ width: 1, height: 0.5, depth: 2 }).applyToMesh(this);
-        this.rotationQuaternion = BABYLON.Quaternion.Identity();
+        this.aircraftModel = new BABYLON.Mesh("aircraft-mesh");
+        this.aircraftModel.parent = this;
+        BABYLON.VertexData.CreateBox({ width: 1, height: 0.5, depth: 2 }).applyToMesh(this.aircraftModel);
+        let material = new BABYLON.StandardMaterial("debug-white", this.main.scene);
+        material.diffuseColor = BABYLON.Color3.FromHexString("#009987");
+        material.specularColor.copyFromFloats(0, 0, 0);
+        this.aircraftModel.material = material;
         this.getEngine().scenes[0].onBeforeRenderObservable.add(this._update);
     }
     getPositionData() {
@@ -286,10 +425,13 @@ class SpaceshipPhysicController extends SpaceshipController {
     onBeforeUpdateSpaceship() {
         let dt = this.spaceship.getEngine().getDeltaTime() / 1000;
         this.spaceship.position.addInPlace(this.spaceship.forward.scale(dt * 3));
+        let yawQuat = BABYLON.Quaternion.RotationAxis(this.spaceship.up, this.spaceship.yawInput * dt * Math.PI * 0.5);
         let rollQuat = BABYLON.Quaternion.RotationAxis(this.spaceship.forward, -this.spaceship.rollInput * dt * Math.PI * 0.5);
         let pitchQuat = BABYLON.Quaternion.RotationAxis(this.spaceship.right, -this.spaceship.pitchInput * dt * Math.PI * 0.5);
+        yawQuat.multiplyToRef(this.spaceship.rotationQuaternion, this.spaceship.rotationQuaternion);
         rollQuat.multiplyToRef(this.spaceship.rotationQuaternion, this.spaceship.rotationQuaternion);
         pitchQuat.multiplyToRef(this.spaceship.rotationQuaternion, this.spaceship.rotationQuaternion);
+        this.spaceship.aircraftModel.rotation.z = -Math.PI * 0.5 * this.spaceship.yawInput;
     }
     onAfterUpdateSpaceship() {
         this.spaceship.main.networkManager.broadcastData(this.spaceship.getPositionData());

@@ -13,8 +13,11 @@ class Spaceship extends BABYLON.Mesh {
     public pilot: Pilot;
     public controller: SpaceshipController;
 
-    public rollInput: number = 0;
+    public yawInput: number = 0;
     public pitchInput: number = 0;
+    public rollInput: number = 0;
+
+    public aircraftModel: BABYLON.Mesh;
 
     constructor(
         name: string,
@@ -25,6 +28,7 @@ class Spaceship extends BABYLON.Mesh {
         for (let i = 0; i < 16; i++) {
             this.guid += (Math.floor(Math.random() * 16)).toString(16);
         }
+        this.rotationQuaternion = BABYLON.Quaternion.Identity();
     }
     
     public attachPilot(pilot: Pilot) {
@@ -38,8 +42,13 @@ class Spaceship extends BABYLON.Mesh {
     }
 
     public instantiate(): void {
-        BABYLON.VertexData.CreateBox({ width: 1, height: 0.5, depth: 2 }).applyToMesh(this);
-        this.rotationQuaternion = BABYLON.Quaternion.Identity();
+        this.aircraftModel = new BABYLON.Mesh("aircraft-mesh");
+        this.aircraftModel.parent = this;
+        BABYLON.VertexData.CreateBox({ width: 1, height: 0.5, depth: 2 }).applyToMesh(this.aircraftModel);
+        let material = new BABYLON.StandardMaterial("debug-white", this.main.scene);
+        material.diffuseColor = BABYLON.Color3.FromHexString("#009987");
+        material.specularColor.copyFromFloats(0, 0, 0);
+        this.aircraftModel.material = material;
         this.getEngine().scenes[0].onBeforeRenderObservable.add(this._update);
     }
 
