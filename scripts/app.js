@@ -470,44 +470,37 @@ class PlayerInputVirtualPad extends PlayerInput {
         this.centerX = this.clientWidth - this.size * 0.5 - margin;
         this.centerY = this.clientHeight - this.size * 0.5 - margin;
         this.main.canvas.addEventListener("pointerdown", (ev) => {
-            this._dx = this.clientXToDX(ev.clientX);
-            this._dy = this.clientYToDY(ev.clientY);
-            if (this._dx * this._dx + this._dy * this._dy < 1) {
+            let dx = this.clientXToDX(ev.clientX);
+            let dy = this.clientYToDY(ev.clientY);
+            if (dx * dx + dy * dy < 1) {
                 this._pointerDown = true;
+                this._dx = dx;
+                this._dy = dy;
                 this.updatePad(this._dx, this._dy);
                 this.updatePilot(this._dx, this._dy);
             }
         });
         this.main.canvas.addEventListener("pointermove", (ev) => {
             if (this._pointerDown) {
-                this._dx = this.clientXToDX(ev.clientX);
-                this._dy = this.clientYToDY(ev.clientY);
-                if (this._dx * this._dx + this._dy * this._dy < 1) {
+                let dx = this.clientXToDX(ev.clientX);
+                let dy = this.clientYToDY(ev.clientY);
+                if (dx * dx + dy * dy < 1) {
+                    this._dx = dx;
+                    this._dy = dy;
                     this.updatePad(this._dx, this._dy);
                     this.updatePilot(this._dx, this._dy);
                 }
-                else if (this._dx * this._dx + this._dy * this._dy < 4) {
-                    let l = Math.sqrt(this._dx * this._dx + this._dy * this._dy);
-                    this._dx = this._dx / l;
-                    this._dy = this._dy / l;
+                else if (dx * dx + dy * dy < 4) {
+                    let l = Math.sqrt(dx * dx + dy * dy);
+                    this._dx = dx / l;
+                    this._dy = dy / l;
                     this.updatePad(this._dx, this._dy);
                     this.updatePilot(this._dx, this._dy);
-                }
-                else if (this._dx * this._dx + this._dy * this._dy > 4) {
-                    /*
-                    this._pointerDown = false;
-                    this.updatePad(0, 0);
-                    this.updatePilot(0, 0);
-                    */
                 }
             }
         });
         this.main.canvas.addEventListener("pointerup", (ev) => {
-            this._dx = this.clientXToDX(ev.clientX);
-            this._dy = this.clientYToDY(ev.clientY);
-            if (this._dx * this._dx + this._dy * this._dy < 4) {
-                this._pointerDown = false;
-            }
+            this._pointerDown = false;
         });
         this.main.scene.onBeforeRenderObservable.add(this._update);
     }
