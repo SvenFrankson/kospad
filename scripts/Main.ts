@@ -7,6 +7,7 @@ class Main {
     public engine: BABYLON.Engine;
     public scene: BABYLON.Scene;
 	public camera: BABYLON.FreeCamera;
+	public inputManager: InputManager;
     public networkManager: NetworkManager;
     public networkSpaceshipManager: NetworkSpaceshipManager;
 
@@ -17,6 +18,9 @@ class Main {
 	
 	public async initialize(): Promise<void> {
 		await this.initializeScene();
+
+		this.inputManager = new InputManager();
+		this.inputManager.initialize();
 
         this.networkManager = new NetworkManager(this);
         this.networkManager.initialize();
@@ -29,11 +33,12 @@ class Main {
         spaceship.attachController(new SpaceshipPhysicController());
 
 		let pilot = new HumanPilot(this);
-		pilot.initializeTouchScreen();
+		pilot.initializeDesktop();
 		pilot.initialize();
 		
 		let hud = new Hud(this);
 		hud.initialize();
+		hud.resize(0.7);
 		pilot.attachHud(hud);
 
         spaceship.attachPilot(pilot);

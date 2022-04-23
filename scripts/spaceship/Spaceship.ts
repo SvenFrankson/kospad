@@ -13,9 +13,15 @@ class Spaceship extends BABYLON.Mesh {
     public pilot: Pilot;
     public controller: SpaceshipController;
 
+    public maxSpeed: number = 5;
+    public yawSpeed: number = Math.PI / 2;
+    public pitchSpeed: number = Math.PI / 2;
+    public rollSpeed: number = Math.PI / 2;
+
     public yawInput: number = 0;
     public pitchInput: number = 0;
     public rollInput: number = 0;
+    public thrustInput: number = 0;
 
     public aircraftModel: BABYLON.Mesh;
 

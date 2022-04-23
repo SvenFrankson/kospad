@@ -9,8 +9,10 @@ class HumanPilot extends Pilot {
     }
 
     public initializeDesktop(): void {
-        let input = new PlayerInputMouse(this);
-        input.connectInput();
+        let mouse = new PlayerInputMouse(this);
+        mouse.connectInput();
+        let keyboard = new PlayerInputKeyboard(this);
+        keyboard.connectInput();
     }
 
     public initializeTouchScreen(): void {
@@ -24,14 +26,14 @@ class HumanPilot extends Pilot {
     }
 
     public updatePilot(): void {
+        let dt = this.main.engine.getDeltaTime() / 1000;
+        let f = dt * 2;
+
         let camPos = this.spaceship.position.clone();
         camPos.addInPlace(this.spaceship.up.scale(2));
         camPos.addInPlace(this.spaceship.forward.scale(-10));
 
-        this.main.camera.position.scaleInPlace(19).addInPlace(camPos).scaleInPlace(0.05);
-        BABYLON.Quaternion.SlerpToRef(this.main.camera.rotationQuaternion, this.spaceship.rotationQuaternion, 0.05, this.main.camera.rotationQuaternion);
-
-        this.hud.setXInput(this.spaceship.yawInput);
-        this.hud.setYInput(this.spaceship.pitchInput);
+        this.main.camera.position.scaleInPlace(1 - f).addInPlace(camPos.scaleInPlace(f));
+        BABYLON.Quaternion.SlerpToRef(this.main.camera.rotationQuaternion, this.spaceship.rotationQuaternion, f, this.main.camera.rotationQuaternion);
     }
 }

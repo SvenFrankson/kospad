@@ -8,6 +8,7 @@ class FakeHumanPilot extends HumanPilot {
     public updatePilot(): void {
         let dt = this.spaceship.getEngine().getDeltaTime() / 1000;
 
+        this.spaceship.thrustInput = 0.5;
         this.spaceship.pitchInput = 1;
 
         this.spaceship.rollInput = 0;
