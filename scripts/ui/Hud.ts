@@ -230,8 +230,9 @@ class Hud {
         for (let i = 0; i < 3; i++) {
             this.pitchGaugeValues[i] = document.createElementNS("http://www.w3.org/2000/svg", "text");
             this.pitchGaugeValues[i].setAttribute("fill", "white");
+            this.pitchGaugeValues[i].setAttribute("text-anchor", "end");
             this.pitchGaugeValues[i].setAttribute("font-family", "Consolas");
-            this.pitchGaugeValues[i].setAttribute("font-size", "60");
+            this.pitchGaugeValues[i].setAttribute("font-size", "40");
             this.root.appendChild(this.pitchGaugeValues[i]);
         }
     
@@ -286,24 +287,30 @@ class Hud {
         }
     }
 
-    public setPitch(p: number): void {
+    public setPitch(p: number, r: number): void {
         let n = 0;
         let d = "";
         for (let i = - 18; i <= 18; i++) {
-            let y = (i * 10 + p) * 40;
+            let y = (i * 10 + p) * 60;
             if (Math.abs(y) < 620) {
-                d += "M -540 " + y.toFixed(0) + " L -500 " + y.toFixed(0) + " ";
+                d += "M -500 " + y.toFixed(0) + " L -480 " + y.toFixed(0) + " ";
                 let textSVG = this.pitchGaugeValues[n];
                 if (textSVG) {
-                    textSVG.innerHTML = (- i * 10).toFixed(0) + "°";
-                    textSVG.setAttribute("x", "-480");
-                    textSVG.setAttribute("y", (y + 15).toFixed(0));
+                    textSVG.innerHTML = (- i * 10).toFixed(0).padStart(4, "");
+                    textSVG.setAttribute("x", "-520");
+                    textSVG.setAttribute("y", (y + 10).toFixed(1));
                     let v = 1 - (Math.abs(y) - 320) / 320;
                     v = Math.min(1, v);
-                    textSVG.setAttribute("fill-opacity", (v * 100).toFixed(0) + "%");
+                    let vRoll = Math.abs(Math.abs(r) - 90) / 10;
+                    vRoll = Math.min(1, vRoll);
+                    textSVG.setAttribute("fill-opacity", (v * vRoll * 100).toFixed(0) + "%");
                     n++;
                 }
             }
+        }
+        for (let i = n; i < 3; i++) {
+            let textSVG = this.pitchGaugeValues[n];
+            textSVG.setAttribute("fill-opacity", "0%");
         }
         this.pitchGaugeCursor.setAttribute("d", d);
     }
@@ -311,8 +318,17 @@ class Hud {
     public _update = () => {
         this.setReticlePos(this.pilot.spaceship.yawInput, this.pilot.spaceship.pitchInput);
         this.setTargetSpeed(this.pilot.spaceship.thrustInput);
-        let pitch = VMath.AngleFromToAround(this.pilot.spaceship.up, BABYLON.Axis.Y, this.pilot.spaceship.right);
-        ScreenLoger.Log((pitch / Math.PI * 180).toFixed(0).padStart(3, "0"))
-        this.setPitch(pitch / Math.PI * 180);
+        let pitch = Math.asin(this.pilot.spaceship.forward.y) / Math.PI * 180;
+        let roll = - VMath.AngleFromToAround(BABYLON.Axis.Y, this.pilot.spaceship.up, this.pilot.spaceship.forward) / Math.PI * 180;
+        if (Math.abs(roll) > 90) {
+            if (pitch > 0) {
+                pitch =  180 - pitch;
+            }
+            else {
+                pitch = - 180 - pitch;
+            }
+        }
+        ScreenLoger.Log(pitch.toFixed(0).padStart(5, " ") + roll.toFixed(0).padStart(5, " "))
+        this.setPitch(pitch, roll);
     }
 }

@@ -49,6 +49,9 @@ class Main {
 			asteroid.position.x = Math.random() * 1000 - 500 ;
 			asteroid.position.y = Math.random() * 200 - 100 ;
 			asteroid.position.z = Math.random() * 1000 - 500 ;
+			let up = BABYLON.MeshBuilder.CreateBox("up-" + i, { width: 1, depth: 1, height: 10 }, this.scene);
+			up.position.copyFrom(asteroid.position);
+			up.position.y += 5;
 		}
 	}
 
