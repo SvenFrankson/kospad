@@ -27,11 +27,11 @@ class HumanPilot extends Pilot {
 
     public updatePilot(): void {
         let dt = this.main.engine.getDeltaTime() / 1000;
-        let f = dt * 2;
+        let f = dt / 0.25;
 
         let camPos = this.spaceship.position.clone();
         camPos.addInPlace(this.spaceship.up.scale(2));
-        camPos.addInPlace(this.spaceship.forward.scale(-10));
+        camPos.addInPlace(this.spaceship.forward.scale(-8));
 
         this.main.camera.position.scaleInPlace(1 - f).addInPlace(camPos.scaleInPlace(f));
         BABYLON.Quaternion.SlerpToRef(this.main.camera.rotationQuaternion, this.spaceship.rotationQuaternion, f, this.main.camera.rotationQuaternion);

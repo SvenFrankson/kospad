@@ -18,6 +18,8 @@ class Hud {
     public rightGaugeBackwardValue: SVGPathElement;
     public rightGaugeCursor: SVGPathElement;
     public leftGaugeValue: SVGPathElement;
+    public pitchGaugeCursor: SVGPathElement;
+    public pitchGaugeValues: SVGTextElement[] = [];
 
     public strokeWidthLite: string = "2";
     public strokeWidth: string = "4";
@@ -208,6 +210,30 @@ class Hud {
         reticleArmBottom.setAttribute("stroke", "white");
         reticleArmBottom.setAttribute("stroke-width", this.strokeWidth);
         this.reticleRoot.appendChild(reticleArmBottom);
+
+        let pitchGaugeAxis = document.createElementNS("http://www.w3.org/2000/svg", "line");
+        pitchGaugeAxis.setAttribute("x1", "-500");
+        pitchGaugeAxis.setAttribute("y1", "-620");
+        pitchGaugeAxis.setAttribute("x2", "-500");
+        pitchGaugeAxis.setAttribute("y2", "620");
+        pitchGaugeAxis.setAttribute("fill", "none");
+        pitchGaugeAxis.setAttribute("stroke", "white");
+        pitchGaugeAxis.setAttribute("stroke-width", this.strokeWidth);
+        this.root.appendChild(pitchGaugeAxis);
+
+        this.pitchGaugeCursor = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        this.pitchGaugeCursor.setAttribute("fill", "none");
+        this.pitchGaugeCursor.setAttribute("stroke", "white");
+        this.pitchGaugeCursor.setAttribute("stroke-width", this.strokeWidth);
+        this.root.appendChild(this.pitchGaugeCursor);
+
+        for (let i = 0; i < 3; i++) {
+            this.pitchGaugeValues[i] = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            this.pitchGaugeValues[i].setAttribute("fill", "white");
+            this.pitchGaugeValues[i].setAttribute("font-family", "Consolas");
+            this.pitchGaugeValues[i].setAttribute("font-size", "60");
+            this.root.appendChild(this.pitchGaugeValues[i]);
+        }
     
         this.main.scene.onBeforeRenderObservable.add(this._update);
 
@@ -260,8 +286,33 @@ class Hud {
         }
     }
 
+    public setPitch(p: number): void {
+        let n = 0;
+        let d = "";
+        for (let i = - 18; i <= 18; i++) {
+            let y = (i * 10 + p) * 40;
+            if (Math.abs(y) < 620) {
+                d += "M -540 " + y.toFixed(0) + " L -500 " + y.toFixed(0) + " ";
+                let textSVG = this.pitchGaugeValues[n];
+                if (textSVG) {
+                    textSVG.innerHTML = (- i * 10).toFixed(0) + "°";
+                    textSVG.setAttribute("x", "-480");
+                    textSVG.setAttribute("y", (y + 15).toFixed(0));
+                    let v = 1 - (Math.abs(y) - 320) / 320;
+                    v = Math.min(1, v);
+                    textSVG.setAttribute("fill-opacity", (v * 100).toFixed(0) + "%");
+                    n++;
+                }
+            }
+        }
+        this.pitchGaugeCursor.setAttribute("d", d);
+    }
+
     public _update = () => {
         this.setReticlePos(this.pilot.spaceship.yawInput, this.pilot.spaceship.pitchInput);
         this.setTargetSpeed(this.pilot.spaceship.thrustInput);
+        let pitch = VMath.AngleFromToAround(this.pilot.spaceship.up, BABYLON.Axis.Y, this.pilot.spaceship.right);
+        ScreenLoger.Log((pitch / Math.PI * 180).toFixed(0).padStart(3, "0"))
+        this.setPitch(pitch / Math.PI * 180);
     }
 }

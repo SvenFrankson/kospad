@@ -24,6 +24,13 @@ class Main {
         hud.resize(0.7);
         pilot.attachHud(hud);
         spaceship.attachPilot(pilot);
+        for (let i = 0; i < 100; i++) {
+            let r = Math.random() * 5 + 1;
+            let asteroid = BABYLON.MeshBuilder.CreateSphere("asteroid-" + i, { diameter: 2 * r }, this.scene);
+            asteroid.position.x = Math.random() * 1000 - 500;
+            asteroid.position.y = Math.random() * 200 - 100;
+            asteroid.position.z = Math.random() * 1000 - 500;
+        }
     }
     async initializeScene() {
         this.scene = new BABYLON.Scene(this.engine);
@@ -195,10 +202,10 @@ class HumanPilot extends Pilot {
     }
     updatePilot() {
         let dt = this.main.engine.getDeltaTime() / 1000;
-        let f = dt * 2;
+        let f = dt / 0.25;
         let camPos = this.spaceship.position.clone();
         camPos.addInPlace(this.spaceship.up.scale(2));
-        camPos.addInPlace(this.spaceship.forward.scale(-10));
+        camPos.addInPlace(this.spaceship.forward.scale(-8));
         this.main.camera.position.scaleInPlace(1 - f).addInPlace(camPos.scaleInPlace(f));
         BABYLON.Quaternion.SlerpToRef(this.main.camera.rotationQuaternion, this.spaceship.rotationQuaternion, f, this.main.camera.rotationQuaternion);
     }
@@ -228,10 +235,10 @@ class Spaceship extends BABYLON.Mesh {
     constructor(name, main) {
         super(name);
         this.main = main;
-        this.maxSpeed = 5;
-        this.yawSpeed = Math.PI / 2;
-        this.pitchSpeed = Math.PI / 2;
-        this.rollSpeed = Math.PI / 2;
+        this.maxSpeed = 20;
+        this.yawSpeed = Math.PI / 3;
+        this.pitchSpeed = Math.PI / 3;
+        this.rollSpeed = Math.PI / 3;
         this.yawInput = 0;
         this.pitchInput = 0;
         this.rollInput = 0;
@@ -306,7 +313,7 @@ class SpaceshipNetworkController extends SpaceshipController {
 class SpaceshipPhysicController extends SpaceshipController {
     onBeforeUpdateSpaceship() {
         let dt = this.spaceship.getEngine().getDeltaTime() / 1000;
-        this.spaceship.position.addInPlace(this.spaceship.forward.scale(this.spaceship.thrustInput * dt * this.spaceship.maxSpeed));
+        this.spaceship.position.addInPlace(this.spaceship.forward.scale(Math.max(this.spaceship.thrustInput, 0) * dt * this.spaceship.maxSpeed));
         let yawQuat = BABYLON.Quaternion.RotationAxis(this.spaceship.up, this.spaceship.yawInput * dt * this.spaceship.yawSpeed);
         let rollQuat = BABYLON.Quaternion.RotationAxis(this.spaceship.forward, -this.spaceship.rollInput * dt * this.spaceship.rollSpeed);
         let pitchQuat = BABYLON.Quaternion.RotationAxis(this.spaceship.right, -this.spaceship.pitchInput * dt * this.spaceship.pitchSpeed);
@@ -330,12 +337,16 @@ class Hud {
         this.size = 0;
         this.reticleMaxRange = 0.65;
         this.svgPerPixel = 1;
+        this.pitchGaugeValues = [];
         this.strokeWidthLite = "2";
         this.strokeWidth = "4";
         this.strokeWidthHeavy = "6";
         this._update = () => {
             this.setReticlePos(this.pilot.spaceship.yawInput, this.pilot.spaceship.pitchInput);
             this.setTargetSpeed(this.pilot.spaceship.thrustInput);
+            let pitch = VMath.AngleFromToAround(this.pilot.spaceship.up, BABYLON.Axis.Y, this.pilot.spaceship.right);
+            ScreenLoger.Log((pitch / Math.PI * 180).toFixed(0).padStart(3, "0"));
+            this.setPitch(pitch / Math.PI * 180);
         };
     }
     resize(sizeInPercent) {
@@ -499,6 +510,27 @@ class Hud {
         reticleArmBottom.setAttribute("stroke", "white");
         reticleArmBottom.setAttribute("stroke-width", this.strokeWidth);
         this.reticleRoot.appendChild(reticleArmBottom);
+        let pitchGaugeAxis = document.createElementNS("http://www.w3.org/2000/svg", "line");
+        pitchGaugeAxis.setAttribute("x1", "-500");
+        pitchGaugeAxis.setAttribute("y1", "-620");
+        pitchGaugeAxis.setAttribute("x2", "-500");
+        pitchGaugeAxis.setAttribute("y2", "620");
+        pitchGaugeAxis.setAttribute("fill", "none");
+        pitchGaugeAxis.setAttribute("stroke", "white");
+        pitchGaugeAxis.setAttribute("stroke-width", this.strokeWidth);
+        this.root.appendChild(pitchGaugeAxis);
+        this.pitchGaugeCursor = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        this.pitchGaugeCursor.setAttribute("fill", "none");
+        this.pitchGaugeCursor.setAttribute("stroke", "white");
+        this.pitchGaugeCursor.setAttribute("stroke-width", this.strokeWidth);
+        this.root.appendChild(this.pitchGaugeCursor);
+        for (let i = 0; i < 3; i++) {
+            this.pitchGaugeValues[i] = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            this.pitchGaugeValues[i].setAttribute("fill", "white");
+            this.pitchGaugeValues[i].setAttribute("font-family", "Consolas");
+            this.pitchGaugeValues[i].setAttribute("font-size", "60");
+            this.root.appendChild(this.pitchGaugeValues[i]);
+        }
         this.main.scene.onBeforeRenderObservable.add(this._update);
         this.initialized = true;
     }
@@ -544,6 +576,27 @@ class Hud {
         if (s === 0) {
             this.rightGaugeCursor.setAttribute("transform", "rotate(-340 0 0)");
         }
+    }
+    setPitch(p) {
+        let n = 0;
+        let d = "";
+        for (let i = -18; i <= 18; i++) {
+            let y = (i * 10 + p) * 40;
+            if (Math.abs(y) < 620) {
+                d += "M -540 " + y.toFixed(0) + " L -500 " + y.toFixed(0) + " ";
+                let textSVG = this.pitchGaugeValues[n];
+                if (textSVG) {
+                    textSVG.innerHTML = (-i * 10).toFixed(0) + "°";
+                    textSVG.setAttribute("x", "-480");
+                    textSVG.setAttribute("y", (y + 15).toFixed(0));
+                    let v = 1 - (Math.abs(y) - 320) / 320;
+                    v = Math.min(1, v);
+                    textSVG.setAttribute("fill-opacity", (v * 100).toFixed(0) + "%");
+                    n++;
+                }
+            }
+        }
+        this.pitchGaugeCursor.setAttribute("d", d);
     }
 }
 var KeyInput;
@@ -671,7 +724,7 @@ class PlayerInput {
 class PlayerInputKeyboard extends PlayerInput {
     constructor() {
         super(...arguments);
-        this._thrustInput = 1;
+        this._thrustInput = 0;
         this._update = () => {
             let dt = this.main.engine.getDeltaTime() / 1000;
             if (this.main.inputManager.isKeyInputDown(KeyInput.THRUST_INC)) {
@@ -679,6 +732,14 @@ class PlayerInputKeyboard extends PlayerInput {
             }
             else if (this.main.inputManager.isKeyInputDown(KeyInput.THRUST_DEC)) {
                 this._thrustInput -= dt;
+            }
+            else if (this._thrustInput < 0) {
+                if (Math.abs(this._thrustInput) > 0.001) {
+                    this._thrustInput = this._thrustInput * (1 - dt);
+                }
+                else {
+                    this._thrustInput = 0;
+                }
             }
             this._thrustInput = Math.min(Math.max(this._thrustInput, -1), 1);
             this.pilot.spaceship.thrustInput = this._thrustInput;
@@ -919,5 +980,165 @@ class UniqueList {
     }
     contains(e) {
         return this._elements.indexOf(e) != -1;
+    }
+}
+class VMath {
+    // Method adapted from gre's work (https://github.com/gre/bezier-easing). Thanks !
+    static easeOutElastic(t, b = 0, c = 1, d = 1) {
+        var s = 1.70158;
+        var p = 0;
+        var a = c;
+        if (t == 0) {
+            return b;
+        }
+        if ((t /= d) == 1) {
+            return b + c;
+        }
+        if (!p) {
+            p = d * .3;
+        }
+        if (a < Math.abs(c)) {
+            a = c;
+            s = p / 4;
+        }
+        else {
+            s = p / (2 * Math.PI) * Math.asin(c / a);
+        }
+        return a * Math.pow(2, -10 * t) * Math.sin((t * d - s) * (2 * Math.PI) / p) + c + b;
+    }
+    static easeInOutCirc(x) {
+        return x < 0.5 ? (1 - Math.sqrt(1 - Math.pow(2 * x, 2))) / 2 : (Math.sqrt(1 - Math.pow(-2 * x + 2, 2)) + 1) / 2;
+    }
+    static easeOutBack(x) {
+        const c1 = 1.70158;
+        const c3 = c1 + 1;
+        return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2);
+    }
+    static easeOutQuart(x) {
+        return 1 - Math.pow(1 - x, 4);
+    }
+    static ProjectPerpendicularAt(v, at) {
+        let p = BABYLON.Vector3.Zero();
+        let k = (v.x * at.x + v.y * at.y + v.z * at.z);
+        k = k / (at.x * at.x + at.y * at.y + at.z * at.z);
+        p.copyFrom(v);
+        p.subtractInPlace(at.multiplyByFloats(k, k, k));
+        return p;
+    }
+    static Angle(from, to) {
+        let pFrom = BABYLON.Vector3.Normalize(from);
+        let pTo = BABYLON.Vector3.Normalize(to);
+        let angle = Math.acos(BABYLON.Vector3.Dot(pFrom, pTo));
+        return angle;
+    }
+    static AngleFromToAround(from, to, around) {
+        let pFrom = VMath.ProjectPerpendicularAt(from, around).normalize();
+        let pTo = VMath.ProjectPerpendicularAt(to, around).normalize();
+        let angle = Math.acos(BABYLON.Vector3.Dot(pFrom, pTo));
+        if (BABYLON.Vector3.Dot(BABYLON.Vector3.Cross(pFrom, pTo), around) < 0) {
+            angle = -angle;
+        }
+        return angle;
+    }
+    static StepAngle(from, to, step) {
+        while (from < 0) {
+            from += 2 * Math.PI;
+        }
+        while (to < 0) {
+            to += 2 * Math.PI;
+        }
+        while (from >= 2 * Math.PI) {
+            from -= 2 * Math.PI;
+        }
+        while (to >= 2 * Math.PI) {
+            to -= 2 * Math.PI;
+        }
+        if (Math.abs(from - to) <= step) {
+            return to;
+        }
+        if (to < from) {
+            step *= -1;
+        }
+        if (Math.abs(from - to) > Math.PI) {
+            step *= -1;
+        }
+        return from + step;
+    }
+    static LerpAngle(from, to, t) {
+        while (from < 0) {
+            from += 2 * Math.PI;
+        }
+        while (to < 0) {
+            to += 2 * Math.PI;
+        }
+        while (from >= 2 * Math.PI) {
+            from -= 2 * Math.PI;
+        }
+        while (to >= 2 * Math.PI) {
+            to -= 2 * Math.PI;
+        }
+        if (Math.abs(from - to) > Math.PI) {
+            if (from > Math.PI) {
+                from -= 2 * Math.PI;
+            }
+            else {
+                to -= 2 * Math.PI;
+            }
+        }
+        return from * (1 - t) + to * t;
+    }
+    static AngularDistance(from, to) {
+        while (from < 0) {
+            from += 2 * Math.PI;
+        }
+        while (to < 0) {
+            to += 2 * Math.PI;
+        }
+        while (from >= 2 * Math.PI) {
+            from -= 2 * Math.PI;
+        }
+        while (to >= 2 * Math.PI) {
+            to -= 2 * Math.PI;
+        }
+        let d = Math.abs(from - to);
+        if (d > Math.PI) {
+            d *= -1;
+        }
+        if (to < from) {
+            d *= -1;
+        }
+        return d;
+    }
+    static CatmullRomPath(path) {
+        let interpolatedPoints = [];
+        for (let i = 0; i < path.length; i++) {
+            let p0 = path[(i - 1 + path.length) % path.length];
+            let p1 = path[i];
+            let p2 = path[(i + 1) % path.length];
+            let p3 = path[(i + 2) % path.length];
+            interpolatedPoints.push(BABYLON.Vector3.CatmullRom(p0, p1, p2, p3, 0.5));
+        }
+        for (let i = 0; i < interpolatedPoints.length; i++) {
+            path.splice(2 * i + 1, 0, interpolatedPoints[i]);
+        }
+    }
+    static SetABDistance(a, b, dist) {
+        let n = b.subtract(a);
+        n.normalize().scaleInPlace(dist);
+        return a.add(n);
+    }
+    static SetABDistanceInPlace(a, b, dist, keepAInPlace) {
+        let n = b.subtract(a);
+        let l = n.length();
+        n.normalize();
+        if (keepAInPlace) {
+            b.copyFrom(n).scaleInPlace(dist).addInPlace(a);
+        }
+        else {
+            let d = (l - dist) * 0.5;
+            n.scaleInPlace(d);
+            a.addInPlace(n);
+            b.subtractInPlace(n);
+        }
     }
 }

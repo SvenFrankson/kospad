@@ -4,7 +4,7 @@ class SpaceshipPhysicController extends SpaceshipController {
 
     public onBeforeUpdateSpaceship(): void {
         let dt = this.spaceship.getEngine().getDeltaTime() / 1000;
-        this.spaceship.position.addInPlace(this.spaceship.forward.scale(this.spaceship.thrustInput * dt * this.spaceship.maxSpeed));
+        this.spaceship.position.addInPlace(this.spaceship.forward.scale(Math.max(this.spaceship.thrustInput, 0) * dt * this.spaceship.maxSpeed));
 
         let yawQuat = BABYLON.Quaternion.RotationAxis(this.spaceship.up, this.spaceship.yawInput * dt * this.spaceship.yawSpeed);
         let rollQuat = BABYLON.Quaternion.RotationAxis(this.spaceship.forward, - this.spaceship.rollInput * dt * this.spaceship.rollSpeed);

@@ -2,7 +2,7 @@
 
 class PlayerInputKeyboard extends PlayerInput {
 
-    private _thrustInput: number = 1;
+    private _thrustInput: number = 0;
 
     public connectInput(): void {
         this.main.scene.onBeforeRenderObservable.add(this._update);
@@ -16,6 +16,14 @@ class PlayerInputKeyboard extends PlayerInput {
         }
         else if (this.main.inputManager.isKeyInputDown(KeyInput.THRUST_DEC)) {
             this._thrustInput -= dt;
+        }
+        else if (this._thrustInput < 0) {
+            if (Math.abs(this._thrustInput) > 0.001) {
+                this._thrustInput = this._thrustInput * (1 - dt);
+            }
+            else {
+                this._thrustInput = 0;
+            }
         }
         this._thrustInput = Math.min(Math.max(this._thrustInput, - 1), 1);
         this.pilot.spaceship.thrustInput = this._thrustInput;

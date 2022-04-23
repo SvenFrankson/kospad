@@ -42,6 +42,14 @@ class Main {
 		pilot.attachHud(hud);
 
         spaceship.attachPilot(pilot);
+
+		for (let i = 0; i < 100; i++) {
+			let r = Math.random() * 5 + 1;
+			let asteroid = BABYLON.MeshBuilder.CreateSphere("asteroid-" + i, { diameter: 2 * r }, this.scene);
+			asteroid.position.x = Math.random() * 1000 - 500 ;
+			asteroid.position.y = Math.random() * 200 - 100 ;
+			asteroid.position.z = Math.random() * 1000 - 500 ;
+		}
 	}
 
     public async initializeScene(): Promise<void> {
