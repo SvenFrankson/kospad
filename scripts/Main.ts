@@ -38,7 +38,7 @@ class Main {
 		
 		let hud = new Hud(this);
 		hud.initialize();
-		hud.resize(0.7);
+		hud.resize(0.8);
 		pilot.attachHud(hud);
 
         spaceship.attachPilot(pilot);

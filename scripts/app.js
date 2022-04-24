@@ -21,7 +21,7 @@ class Main {
         pilot.initialize();
         let hud = new Hud(this);
         hud.initialize();
-        hud.resize(0.7);
+        hud.resize(0.8);
         pilot.attachHud(hud);
         spaceship.attachPilot(pilot);
         for (let i = 0; i < 100; i++) {
@@ -357,8 +357,7 @@ class Hud {
                     pitch = -180 - pitch;
                 }
             }
-            ScreenLoger.Log(pitch.toFixed(0).padStart(5, " ") + roll.toFixed(0).padStart(5, " "));
-            this.setPitch(pitch, roll);
+            this.setPitchRoll(pitch, roll);
         };
     }
     resize(sizeInPercent) {
@@ -389,26 +388,18 @@ class Hud {
         this.root.style.pointerEvents = "none";
         document.body.appendChild(this.root);
         let outterRing = document.createElementNS("http://www.w3.org/2000/svg", "path");
-        let outterRingD = SvgUtils.drawArc(30, 60, 820, true);
-        outterRingD += SvgUtils.drawArc(30, 100, 850, true);
-        outterRingD += SvgUtils.lineToPolar(100, 820);
-        outterRingD += SvgUtils.drawArc(100, 135, 820, false);
-        outterRingD += SvgUtils.drawArc(45, 110, 880, true);
-        outterRingD += SvgUtils.lineToPolar(110, 850);
-        outterRingD += SvgUtils.drawArc(110, 150, 850, false);
-        outterRingD += SvgUtils.drawArc(80, 120, 910, true);
-        outterRingD += SvgUtils.lineToPolar(120, 880);
-        outterRingD += SvgUtils.drawArc(120, 150, 880, false);
-        outterRingD += SvgUtils.drawArc(210, 240, 820, true);
-        outterRingD += SvgUtils.drawArc(210, 280, 850, true);
-        outterRingD += SvgUtils.lineToPolar(280, 820);
-        outterRingD += SvgUtils.drawArc(280, 315, 820, false);
-        outterRingD += SvgUtils.drawArc(225, 290, 880, true);
-        outterRingD += SvgUtils.lineToPolar(290, 850);
-        outterRingD += SvgUtils.drawArc(290, 330, 850, false);
-        outterRingD += SvgUtils.drawArc(260, 300, 910, true);
-        outterRingD += SvgUtils.lineToPolar(300, 880);
-        outterRingD += SvgUtils.drawArc(300, 330, 880, false);
+        let outterRingD = SvgUtils.drawArc(30, 150, 770, true);
+        outterRingD += SvgUtils.drawArc(30, 60, 800, true);
+        outterRingD += SvgUtils.lineToPolar(60, 830);
+        outterRingD += SvgUtils.drawArc(60, 120, 830);
+        outterRingD += SvgUtils.lineToPolar(120, 800);
+        outterRingD += SvgUtils.drawArc(120, 150, 800);
+        outterRingD += SvgUtils.drawArc(210, 330, 770, true);
+        outterRingD += SvgUtils.drawArc(210, 240, 800, true);
+        outterRingD += SvgUtils.lineToPolar(240, 830);
+        outterRingD += SvgUtils.drawArc(240, 300, 830);
+        outterRingD += SvgUtils.lineToPolar(300, 800);
+        outterRingD += SvgUtils.drawArc(300, 330, 800);
         outterRing.setAttribute("d", outterRingD);
         outterRing.setAttribute("fill", "none");
         outterRing.setAttribute("stroke", "white");
@@ -416,8 +407,8 @@ class Hud {
         this.root.appendChild(outterRing);
         this.rightGaugeForwardValue = document.createElementNS("http://www.w3.org/2000/svg", "path");
         let rightGaugeForwardValueD = SvgUtils.drawArc(340, 30, 770, true);
-        rightGaugeForwardValueD += SvgUtils.lineToPolar(30, 930);
-        rightGaugeForwardValueD += SvgUtils.drawArc(30, 340, 930, false, true);
+        rightGaugeForwardValueD += SvgUtils.lineToPolar(30, 860);
+        rightGaugeForwardValueD += SvgUtils.drawArc(30, 340, 860, false, true);
         rightGaugeForwardValueD += SvgUtils.lineToPolar(340, 770);
         this.rightGaugeForwardValue.setAttribute("d", rightGaugeForwardValueD);
         this.rightGaugeForwardValue.setAttribute("fill", "rgba(255, 127, 0, 50%)");
@@ -425,8 +416,8 @@ class Hud {
         this.root.appendChild(this.rightGaugeForwardValue);
         this.rightGaugeBackwardValue = document.createElementNS("http://www.w3.org/2000/svg", "path");
         let rightGaugeBackwardValueD = SvgUtils.drawArc(330, 340, 770, true);
-        rightGaugeBackwardValueD += SvgUtils.lineToPolar(340, 930);
-        rightGaugeBackwardValueD += SvgUtils.drawArc(340, 330, 930, false, true);
+        rightGaugeBackwardValueD += SvgUtils.lineToPolar(340, 860);
+        rightGaugeBackwardValueD += SvgUtils.drawArc(340, 330, 860, false, true);
         rightGaugeBackwardValueD += SvgUtils.lineToPolar(330, 770);
         this.rightGaugeBackwardValue.setAttribute("d", rightGaugeBackwardValueD);
         this.rightGaugeBackwardValue.setAttribute("fill", "rgba(0, 127, 255, 50%)");
@@ -434,10 +425,10 @@ class Hud {
         this.root.appendChild(this.rightGaugeBackwardValue);
         let rightGauge = document.createElementNS("http://www.w3.org/2000/svg", "path");
         let rightGaugeD = SvgUtils.drawArc(330, 30, 770, true);
-        rightGaugeD += SvgUtils.lineToPolar(30, 930);
-        rightGaugeD += SvgUtils.drawArc(30, 330, 930, false, true);
+        rightGaugeD += SvgUtils.lineToPolar(30, 860);
+        rightGaugeD += SvgUtils.drawArc(30, 330, 860, false, true);
         rightGaugeD += SvgUtils.lineToPolar(330, 770);
-        rightGaugeD += SvgUtils.lineFromToPolar(340, 770, 340, 930);
+        rightGaugeD += SvgUtils.lineFromToPolar(340, 770, 340, 860);
         rightGauge.setAttribute("d", rightGaugeD);
         rightGauge.setAttribute("fill", "none");
         rightGauge.setAttribute("stroke", "white");
@@ -447,7 +438,7 @@ class Hud {
         let rightGaugeGraduationsD = "";
         for (let i = 1; i < 12; i++) {
             let a = 330 + i * 5;
-            rightGaugeGraduationsD += SvgUtils.lineFromToPolar(a, 880, a, 930);
+            rightGaugeGraduationsD += SvgUtils.lineFromToPolar(a, 830, a, 860);
         }
         rightGaugeGraduations.setAttribute("d", rightGaugeGraduationsD);
         rightGaugeGraduations.setAttribute("fill", "none");
@@ -455,18 +446,17 @@ class Hud {
         rightGaugeGraduations.setAttribute("stroke-width", this.strokeWidthLite);
         this.root.appendChild(rightGaugeGraduations);
         this.rightGaugeCursor = document.createElementNS("http://www.w3.org/2000/svg", "path");
-        let rightGaugeCursorD = SvgUtils.drawArc(1, 359, 970, true, true);
-        rightGaugeCursorD += SvgUtils.lineToPolar(0, 940);
-        rightGaugeCursorD += SvgUtils.lineToPolar(1, 970);
+        let rightGaugeCursorD = SvgUtils.drawArc(1, 359, 900, true, true);
+        rightGaugeCursorD += SvgUtils.lineToPolar(0, 870);
+        rightGaugeCursorD += SvgUtils.lineToPolar(1, 900);
         this.rightGaugeCursor.setAttribute("d", rightGaugeCursorD);
-        this.rightGaugeCursor.setAttribute("fill", "none");
-        this.rightGaugeCursor.setAttribute("stroke", "white");
-        this.rightGaugeCursor.setAttribute("stroke-width", this.strokeWidth);
+        this.rightGaugeCursor.setAttribute("fill", "white");
+        this.rightGaugeCursor.setAttribute("fill-opacity", "50%");
         this.root.appendChild(this.rightGaugeCursor);
         let leftGauge = document.createElementNS("http://www.w3.org/2000/svg", "path");
         let leftGaugeD = SvgUtils.drawArc(150, 210, 770, true);
-        leftGaugeD += SvgUtils.lineToPolar(210, 930);
-        leftGaugeD += SvgUtils.drawArc(210, 150, 930, false, true);
+        leftGaugeD += SvgUtils.lineToPolar(210, 860);
+        leftGaugeD += SvgUtils.drawArc(210, 150, 860, false, true);
         leftGaugeD += SvgUtils.lineToPolar(150, 770);
         leftGauge.setAttribute("d", leftGaugeD);
         leftGauge.setAttribute("fill", "none");
@@ -524,9 +514,9 @@ class Hud {
         this.reticleRoot.appendChild(reticleArmBottom);
         let pitchGaugeAxis = document.createElementNS("http://www.w3.org/2000/svg", "line");
         pitchGaugeAxis.setAttribute("x1", "-500");
-        pitchGaugeAxis.setAttribute("y1", "-620");
+        pitchGaugeAxis.setAttribute("y1", "-550");
         pitchGaugeAxis.setAttribute("x2", "-500");
-        pitchGaugeAxis.setAttribute("y2", "620");
+        pitchGaugeAxis.setAttribute("y2", "550");
         pitchGaugeAxis.setAttribute("fill", "none");
         pitchGaugeAxis.setAttribute("stroke", "white");
         pitchGaugeAxis.setAttribute("stroke-width", this.strokeWidth);
@@ -544,6 +534,20 @@ class Hud {
             this.pitchGaugeValues[i].setAttribute("font-size", "40");
             this.root.appendChild(this.pitchGaugeValues[i]);
         }
+        this.rollGaugeCursor = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        let rollGaugeCursorD = SvgUtils.drawArc(250, 290, 740, true);
+        rollGaugeCursorD += SvgUtils.lineToPolar(290, 720);
+        rollGaugeCursorD += SvgUtils.drawArc(290, 250, 720, false, true);
+        rollGaugeCursorD += SvgUtils.lineToPolar(250, 740);
+        rollGaugeCursorD += SvgUtils.drawArc(87, 93, 710, true);
+        rollGaugeCursorD += SvgUtils.lineToPolar(90, 740);
+        rollGaugeCursorD += SvgUtils.lineToPolar(87, 710);
+        this.rollGaugeCursor.setAttribute("d", rollGaugeCursorD);
+        this.rollGaugeCursor.setAttribute("fill", "white");
+        this.rollGaugeCursor.setAttribute("fill-opacity", "50%");
+        //this.rollGaugeCursor.setAttribute("stroke", "white");
+        //this.rollGaugeCursor.setAttribute("stroke-width", this.strokeWidth);
+        this.root.appendChild(this.rollGaugeCursor);
         this.main.scene.onBeforeRenderObservable.add(this._update);
         this.initialized = true;
     }
@@ -563,8 +567,8 @@ class Hud {
             this.rightGaugeForwardValue.setAttribute("visibility", "visible");
             let a = 340 * (1 - s) + 390 * s;
             let rightGaugeForwardValueD = SvgUtils.drawArc(340, a, 770, true);
-            rightGaugeForwardValueD += SvgUtils.lineToPolar(a, 930);
-            rightGaugeForwardValueD += SvgUtils.drawArc(a, 340, 930, false, true);
+            rightGaugeForwardValueD += SvgUtils.lineToPolar(a, 860);
+            rightGaugeForwardValueD += SvgUtils.drawArc(a, 340, 860, false, true);
             rightGaugeForwardValueD += SvgUtils.lineToPolar(340, 770);
             this.rightGaugeForwardValue.setAttribute("d", rightGaugeForwardValueD);
             this.rightGaugeCursor.setAttribute("transform", "rotate(-" + a + " 0 0)");
@@ -577,8 +581,8 @@ class Hud {
             s = -s;
             let a = 340 * (1 - s) + 330 * s;
             let rightGaugeBackwardValueD = SvgUtils.drawArc(a, 340, 770, true);
-            rightGaugeBackwardValueD += SvgUtils.lineToPolar(340, 930);
-            rightGaugeBackwardValueD += SvgUtils.drawArc(340, a, 930, false, true);
+            rightGaugeBackwardValueD += SvgUtils.lineToPolar(340, 860);
+            rightGaugeBackwardValueD += SvgUtils.drawArc(340, a, 860, false, true);
             rightGaugeBackwardValueD += SvgUtils.lineToPolar(a, 770);
             this.rightGaugeBackwardValue.setAttribute("d", rightGaugeBackwardValueD);
             this.rightGaugeCursor.setAttribute("transform", "rotate(-" + a + " 0 0)");
@@ -590,19 +594,19 @@ class Hud {
             this.rightGaugeCursor.setAttribute("transform", "rotate(-340 0 0)");
         }
     }
-    setPitch(p, r) {
+    setPitchRoll(p, r) {
         let n = 0;
         let d = "";
         for (let i = -18; i <= 18; i++) {
-            let y = (i * 10 + p) * 60;
-            if (Math.abs(y) < 620) {
+            let y = (i * 10 + p) * 40;
+            if (Math.abs(y) < 550) {
                 d += "M -500 " + y.toFixed(0) + " L -480 " + y.toFixed(0) + " ";
                 let textSVG = this.pitchGaugeValues[n];
                 if (textSVG) {
                     textSVG.innerHTML = (-i * 10).toFixed(0).padStart(4, "");
                     textSVG.setAttribute("x", "-520");
                     textSVG.setAttribute("y", (y + 10).toFixed(1));
-                    let v = 1 - (Math.abs(y) - 320) / 320;
+                    let v = 1 - (Math.abs(y) - 275) / 275;
                     v = Math.min(1, v);
                     let vRoll = Math.abs(Math.abs(r) - 90) / 10;
                     vRoll = Math.min(1, vRoll);
@@ -616,6 +620,7 @@ class Hud {
             textSVG.setAttribute("fill-opacity", "0%");
         }
         this.pitchGaugeCursor.setAttribute("d", d);
+        this.rollGaugeCursor.setAttribute("transform", "rotate(" + (-r).toFixed(1) + " 0 0)");
     }
 }
 var KeyInput;
