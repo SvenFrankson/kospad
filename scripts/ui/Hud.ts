@@ -21,6 +21,8 @@ class Hud {
     public pitchGaugeCursor: SVGPathElement;
     public pitchGaugeValues: SVGTextElement[] = [];
     public rollGaugeCursor: SVGPathElement;
+    public compassGaugeCursor: SVGPathElement;
+    public compassGaugeValues: SVGTextElement[] = [];
 
     public strokeWidthLite: string = "2";
     public strokeWidth: string = "4";
@@ -65,19 +67,30 @@ class Hud {
         document.body.appendChild(this.root);
 
         let outterRing = document.createElementNS("http://www.w3.org/2000/svg", "path");
-        let outterRingD = SvgUtils.drawArc(30, 150, 770, true);
+        let outterRingD = SvgUtils.drawArc(30, 88, 770, true);
+        outterRingD += SvgUtils.drawArc(92, 150, 770, true);
         outterRingD += SvgUtils.drawArc(30, 60, 800, true);
         outterRingD += SvgUtils.lineToPolar(60, 830);
         outterRingD += SvgUtils.drawArc(60, 120, 830);
         outterRingD += SvgUtils.lineToPolar(120, 800);
         outterRingD += SvgUtils.drawArc(120, 150, 800);
 
-        outterRingD += SvgUtils.drawArc(210, 330, 770, true);
+        outterRingD += SvgUtils.lineFromToPolar(88, 770, 89.5, 745);
+        outterRingD += SvgUtils.drawArc(89.5, 90.5, 745, true);
+        outterRingD += SvgUtils.lineToPolar(92, 770);
+
+        outterRingD += SvgUtils.drawArc(210, 268, 770, true);
+        outterRingD += SvgUtils.drawArc(272, 330, 770, true);
         outterRingD += SvgUtils.drawArc(210, 240, 800, true);
         outterRingD += SvgUtils.lineToPolar(240, 830);
         outterRingD += SvgUtils.drawArc(240, 300, 830);
         outterRingD += SvgUtils.lineToPolar(300, 800);
         outterRingD += SvgUtils.drawArc(300, 330, 800);
+
+        outterRingD += SvgUtils.lineFromToPolar(268, 770, 269.5, 745);
+        outterRingD += SvgUtils.drawArc(269.5, 270.5, 745, true);
+        outterRingD += SvgUtils.lineToPolar(272, 770);
+
 
         outterRing.setAttribute("d", outterRingD);
         outterRing.setAttribute("fill", "none");
@@ -232,7 +245,12 @@ class Hud {
         this.rollGaugeCursor = document.createElementNS("http://www.w3.org/2000/svg", "path");
         let rollGaugeCursorD = SvgUtils.drawArc(250, 290, 740, true);
         rollGaugeCursorD += SvgUtils.lineToPolar(290, 720);
-        rollGaugeCursorD += SvgUtils.drawArc(290, 250, 720, false, true);
+        rollGaugeCursorD += SvgUtils.drawArc(290, 271, 720, false, true);
+        rollGaugeCursorD += SvgUtils.lineToPolar(271, 700);
+        rollGaugeCursorD += SvgUtils.drawArc(271, 269, 700, false, true);
+        rollGaugeCursorD += SvgUtils.lineToPolar(269, 720);
+        rollGaugeCursorD += SvgUtils.drawArc(269, 250, 720, false, true);
+
         rollGaugeCursorD += SvgUtils.lineToPolar(250, 740);
         rollGaugeCursorD += SvgUtils.drawArc(87, 93, 710, true);
         rollGaugeCursorD += SvgUtils.lineToPolar(90, 740);
@@ -240,9 +258,22 @@ class Hud {
         this.rollGaugeCursor.setAttribute("d", rollGaugeCursorD);
         this.rollGaugeCursor.setAttribute("fill", "white");
         this.rollGaugeCursor.setAttribute("fill-opacity", "50%");
-        //this.rollGaugeCursor.setAttribute("stroke", "white");
-        //this.rollGaugeCursor.setAttribute("stroke-width", this.strokeWidth);
         this.root.appendChild(this.rollGaugeCursor);
+
+        this.compassGaugeCursor = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        this.compassGaugeCursor.setAttribute("fill", "none");
+        this.compassGaugeCursor.setAttribute("stroke", "white");
+        this.compassGaugeCursor.setAttribute("stroke-width", this.strokeWidth);
+        this.root.appendChild(this.compassGaugeCursor);
+
+        for (let i = 0; i < 3; i++) {
+            this.compassGaugeValues[i] = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            this.compassGaugeValues[i].setAttribute("fill", "white");
+            this.compassGaugeValues[i].setAttribute("text-anchor", "middle");
+            this.compassGaugeValues[i].setAttribute("font-family", "Consolas");
+            this.compassGaugeValues[i].setAttribute("font-size", "40");
+            this.root.appendChild(this.compassGaugeValues[i]);
+        }
     
         this.main.scene.onBeforeRenderObservable.add(this._update);
 
@@ -324,6 +355,40 @@ class Hud {
         this.rollGaugeCursor.setAttribute("transform", "rotate(" + (- r).toFixed(1) + " 0 0)")
     }
 
+    public setHeading(h: number): void {
+        let n = 0;
+        let d = "";
+        for (let i = 0; i < 72; i++) {
+            let a = i * 5 + h;
+            if (a > 360) {
+                a = a - 360;
+            }
+            if (a > 242 && a < 298) {
+                if (i % 4 === 0) {
+                    let textSVG = this.compassGaugeValues[n];
+                    if (textSVG) {
+                        textSVG.innerHTML = (i * 5 / 10).toFixed(0);
+                        textSVG.setAttribute("x", "0")
+                        textSVG.setAttribute("y", "810");
+                        textSVG.setAttribute("transform", "rotate(" + (- (a - 270)).toFixed(1) + " 0 0)");
+                        let v = (1 - Math.abs(270 - a) / 28) * 2;
+                        v = Math.min(1, v);
+                        textSVG.setAttribute("fill-opacity", (v * 100).toFixed(0) + "%");
+                        n++;
+                    }
+                }
+                else {
+                    d += SvgUtils.lineFromToPolar(a, 790, a, 810);
+                }
+            }
+        }
+        for (let i = n; i < 3; i++) {
+            let textSVG = this.compassGaugeValues[n];
+            textSVG.setAttribute("fill-opacity", "0%");
+        }
+        this.compassGaugeCursor.setAttribute("d", d);
+    }
+
     public _update = () => {
         this.setReticlePos(this.pilot.spaceship.yawInput, this.pilot.spaceship.pitchInput);
         this.setTargetSpeed(this.pilot.spaceship.thrustInput);
@@ -338,5 +403,7 @@ class Hud {
             }
         }
         this.setPitchRoll(pitch, roll);
+        let heading = VMath.AngleFromToAround(BABYLON.Axis.Z, this.pilot.spaceship.forward, BABYLON.Axis.Y, true) / Math.PI * 180;
+        this.setHeading(heading);
     }
 }

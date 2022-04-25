@@ -60,12 +60,15 @@ class VMath {
         return angle;
     }
 
-    public static AngleFromToAround(from: BABYLON.Vector3, to: BABYLON.Vector3, around: BABYLON.Vector3): number {
+    public static AngleFromToAround(from: BABYLON.Vector3, to: BABYLON.Vector3, around: BABYLON.Vector3, keepPositive?: boolean): number {
         let pFrom: BABYLON.Vector3 = VMath.ProjectPerpendicularAt(from, around).normalize();
         let pTo: BABYLON.Vector3 = VMath.ProjectPerpendicularAt(to, around).normalize();
         let angle: number = Math.acos(BABYLON.Vector3.Dot(pFrom, pTo));
         if (BABYLON.Vector3.Dot(BABYLON.Vector3.Cross(pFrom, pTo), around) < 0) {
             angle = -angle;
+            if (keepPositive) {
+                angle += 2 * Math.PI;
+            }
         }
         return angle;
     }
