@@ -74,18 +74,13 @@ var Tile;
     Tile[Tile["Sand"] = 2] = "Sand";
 })(Tile || (Tile = {}));
 class Valve {
-    name;
-    flow;
-    connected = [];
-    distances = new Map();
-    cost = Infinity;
-    flowZero = 0;
-    element;
-    x;
-    y;
     constructor(name, flow) {
         this.name = name;
         this.flow = flow;
+        this.connected = [];
+        this.distances = new Map();
+        this.cost = Infinity;
+        this.flowZero = 0;
         this.flowZero = flow;
     }
     connect(other) {
@@ -116,30 +111,14 @@ class Valve {
     }
 }
 class Main {
-    firstValve;
-    maxFlow = 0;
-    totalFlow = 0;
-    flown = 0;
-    valves = [];
-    ap = 30;
-    resetAll() {
-        for (let i = 0; i < this.valves.length; i++) {
-            this.valves[i].cost = Infinity;
-            this.valves[i].flow = this.valves[i].flowZero;
-        }
+    constructor() {
+        this.maxFlow = 0;
         this.totalFlow = 0;
         this.flown = 0;
+        this.valves = [];
         this.ap = 30;
-    }
-    resetCosts() {
-        for (let i = 0; i < this.valves.length; i++) {
-            this.valves[i].cost = Infinity;
-        }
-    }
-    sortValves() {
-        this.valves = this.valves.sort((v1, v2) => { return v2.flow / v2.cost - v1.flow / v1.cost; });
-    }
-    constructor() {
+        this._best = 0;
+        this.bestDepth = [];
         let splitInput = input.split("\n");
         for (let n = 0; n < 2; n++) {
             for (let i = 0; i < splitInput.length; i++) {
@@ -180,13 +159,7 @@ class Main {
             v.x = 1000 * Math.random();
             v.y = 1000 * Math.random();
         }
-        this.valves.find(v => { return v.name === "DC"; }).x = 0;
-        this.valves.find(v => { return v.name === "DC"; }).y = 0;
-        this.valves.find(v => { return v.name === "EX"; }).x = 0;
-        this.valves.find(v => { return v.name === "EX"; }).y = 500;
-        this.valves.find(v => { return v.name === "EQ"; }).x = 1000;
-        this.valves.find(v => { return v.name === "EQ"; }).y = 0;
-        for (let n = 0; n < 100; n++) {
+        for (let n = 0; n < 300; n++) {
             for (let i = 0; i < this.valves.length; i++) {
                 let v = this.valves[i];
                 for (let j = 0; j < this.valves.length; j++) {
@@ -231,8 +204,8 @@ class Main {
             v.element.setAttribute("height", "10");
             v.element.setAttribute("fill", "black");
             let text = document.createElementNS("http://www.w3.org/2000/svg", "text");
-            text.setAttribute("x", (v.x - 5).toFixed(1));
-            text.setAttribute("y", (v.y - 5).toFixed(1));
+            text.setAttribute("x", (v.x - 20).toFixed(1));
+            text.setAttribute("y", (v.y - 10).toFixed(1));
             text.textContent = v.name + " " + v.flow;
             text.setAttribute("fill", "grey");
             if (v.flow > 0) {
@@ -275,19 +248,117 @@ class Main {
         this.valves = this.valves.filter(v => { return v.flow > 0; });
         //this.valves = this.valves.sort((v1, v2) => { return (v2.flow - v2.distances.get(this.firstValve.name)) - (v1.flow - v1.distances.get(this.firstValve.name)); });
         console.log(...this.valves);
+        console.log(this.evaluateN(this.valves.map((v, i) => { return i; })));
+        this.bestDepth = this.valves.map((v, i) => { return 0; });
+        this.recRun2([], [], this.valves.map((v, i) => { return i; }));
+        console.log("done");
+    }
+    resetAll() {
+        for (let i = 0; i < this.valves.length; i++) {
+            this.valves[i].cost = Infinity;
+            this.valves[i].flow = this.valves[i].flowZero;
+        }
+        this.totalFlow = 0;
+        this.flown = 0;
+        this.ap = 30;
+    }
+    resetCosts() {
+        for (let i = 0; i < this.valves.length; i++) {
+            this.valves[i].cost = Infinity;
+        }
+    }
+    sortValves() {
+        this.valves = this.valves.sort((v1, v2) => { return v2.flow / v2.cost - v1.flow / v1.cost; });
+    }
+    recRun(valves, remainingValves) {
+        if (remainingValves.length === 0) {
+            let score = this.evaluateN(valves).score;
+            if (score > this._best) {
+                this._best = score;
+                console.log(this._best);
+            }
+            return score;
+        }
+        else {
+            let result = this.evaluateN(valves);
+            if (result.n < valves.length) {
+                if (result.score > this._best) {
+                    this._best = result.score;
+                    console.log(this._best);
+                }
+                return result.score;
+            }
+            else {
+                let best = 0;
+                for (let i = 0; i < remainingValves.length; i++) {
+                    let valvesNext = [...valves, remainingValves[i]];
+                    let remainingValvesNext = remainingValves.filter(v => { return v != remainingValves[i]; });
+                    let score = this.recRun(valvesNext, remainingValvesNext);
+                    best = Math.max(best, score);
+                }
+                return best;
+            }
+        }
+    }
+    recRun2(valvesMe, valvesElephant, remainingValves) {
+        if (remainingValves.length === 0) {
+            let score = this.evaluateN2(valvesMe, valvesElephant).score;
+            if (score > this._best) {
+                this._best = score;
+                console.log(this._best);
+            }
+            return score;
+        }
+        else {
+            let result = this.evaluateN2(valvesMe, valvesElephant);
+            if (result.score < this.bestDepth[remainingValves.length] * 0.95) {
+                return 0;
+            }
+            this.bestDepth[remainingValves.length] = Math.max(result.score, this.bestDepth[remainingValves.length]);
+            let fullMe = result.nMe < valvesMe.length;
+            let fullElephant = result.nElephant < valvesElephant.length;
+            if (fullMe && fullElephant) {
+                if (result.score > this._best) {
+                    this._best = result.score;
+                    console.log(this._best);
+                }
+                return result.score;
+            }
+            else {
+                let best = 0;
+                for (let i = 0; i < remainingValves.length; i++) {
+                    let score = 0;
+                    if (!fullMe) {
+                        let valvesMeNext = [...valvesMe, remainingValves[i]];
+                        let valvesElephantNext = [...valvesElephant];
+                        let remainingValvesNext = remainingValves.filter(v => { return v != remainingValves[i]; });
+                        score = this.recRun2(valvesMeNext, valvesElephantNext, remainingValvesNext);
+                    }
+                    if (!fullElephant) {
+                        let valvesMeNext = [...valvesMe];
+                        let valvesElephantNext = [...valvesElephant, remainingValves[i]];
+                        let remainingValvesNext = remainingValves.filter(v => { return v != remainingValves[i]; });
+                        score = this.recRun2(valvesMeNext, valvesElephantNext, remainingValvesNext);
+                    }
+                    best = Math.max(best, score);
+                }
+                return best;
+            }
+        }
     }
     doRun() {
         let bestRun;
         let prevScore = this.evaluate(this.valves).score;
-        for (let i = 0; i < 10000; i++) {
+        for (let i = 0; i < 10000000; i++) {
             let prev = [...this.valves];
-            let permuts = Math.ceil(this.valves.length * Math.random() * 0.5);
-            for (let n = 0; n < permuts; n++) {
+            for (let n = 0; n < this.valves.length * 0.5; n++) {
                 let r1 = Math.floor(Math.random() * this.valves.length);
                 let r2 = Math.floor(Math.random() * this.valves.length);
-                let tmp = this.valves[r1];
-                this.valves[r1] = this.valves[r2];
-                this.valves[r2] = tmp;
+                if (r1 != r2) {
+                    let tmp = this.valves[r1];
+                    this.valves[r1] = this.valves[r2];
+                    this.valves[r2] = tmp;
+                }
             }
             let run = this.evaluate(this.valves);
             if (!bestRun || run.score > bestRun.score) {
@@ -301,6 +372,83 @@ class Main {
             }
         }
         return bestRun;
+    }
+    evaluateN(valvesIndexes) {
+        let minute = 0;
+        let index = 0;
+        let count = 0;
+        let score = 0;
+        while (minute < 30 && index < valvesIndexes.length) {
+            let v = this.valves[valvesIndexes[index]];
+            if (v) {
+                let prev;
+                if (index > 0) {
+                    prev = this.valves[valvesIndexes[index - 1]];
+                }
+                else {
+                    prev = this.firstValve;
+                }
+                let d = v.distances.get(prev.name);
+                if (minute + d < 30) {
+                    minute += d;
+                    //console.log("min " + minute + " open " + v.name + " n = " + index);
+                    count++;
+                    score += (30 - minute) * v.flow;
+                }
+            }
+            index++;
+        }
+        return { score: score, n: count };
+    }
+    evaluateN2(valvesIndexesMe, valvesIndexesElephant) {
+        let minute = 0;
+        let countMe = 0;
+        let countElephant = 0;
+        let score = 0;
+        let index = 0;
+        while (minute < 26 && index < valvesIndexesMe.length) {
+            let v = this.valves[valvesIndexesMe[index]];
+            if (v) {
+                let prev;
+                if (index > 0) {
+                    prev = this.valves[valvesIndexesMe[index - 1]];
+                }
+                else {
+                    prev = this.firstValve;
+                }
+                let d = v.distances.get(prev.name);
+                if (minute + d < 26) {
+                    minute += d;
+                    //console.log("min " + minute + " open " + v.name + " n = " + index);
+                    countMe++;
+                    score += (26 - minute) * v.flow;
+                }
+            }
+            index++;
+        }
+        index = 0;
+        minute = 0;
+        while (minute < 26 && index < valvesIndexesElephant.length) {
+            let v = this.valves[valvesIndexesElephant[index]];
+            if (v) {
+                let prev;
+                if (index > 0) {
+                    prev = this.valves[valvesIndexesElephant[index - 1]];
+                }
+                else {
+                    prev = this.firstValve;
+                }
+                let d = v.distances.get(prev.name);
+                if (minute + d < 26) {
+                    minute += d;
+                    //console.log("min " + minute + " open " + v.name + " n = " + index);
+                    countElephant++;
+                    score += (26 - minute) * v.flow;
+                }
+            }
+            index++;
+        }
+        return { score: score, nMe: countMe, nElephant: countElephant };
     }
     evaluate(valves) {
         let minute = 0;
@@ -326,10 +474,9 @@ class Main {
         order.push(minute.toFixed(0) + " min");
         return { score: score, order: order };
     }
-    actions;
     doRun2() {
         let score = 0;
-        for (let i = 0; i < 10000; i++) {
+        for (let i = 0; i < 20000; i++) {
             this.resetAll();
             let actions = [];
             let currentValve = this.firstValve;
@@ -389,12 +536,15 @@ class Main {
 }
 window.addEventListener("load", async () => {
     let main = new Main();
+    return;
     let bestRun = 0;
     let bestOrder = [];
     let hey = 0;
+    let kick = 0;
     let baseValves = [...main.valves];
     let loop = () => {
         let run = main.doRun();
+        console.log(".");
         if (bestRun < run.score) {
             bestRun = run.score;
             bestOrder = run.order;
@@ -405,12 +555,12 @@ window.addEventListener("load", async () => {
         else {
             hey++;
         }
-        if (hey > 60) {
-            console.log("hey");
+        if (hey > 5) {
             hey = 0;
-            main.valves = baseValves.filter(v => { return Math.random() > 0.05; });
-            main.valves = main.valves.sort((v1, v2) => { return Math.random() - 0.5; });
-            console.log(main.valves.map(v => { return v.name; }));
+            main.valves = [...baseValves];
+            main.valves.splice(kick, 1);
+            kick++;
+            console.log("kick = " + kick);
         }
         requestAnimationFrame(loop);
     };
