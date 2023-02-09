@@ -2,7 +2,7 @@ class Main {
     constructor() {
         let node = new OctreeNode();
         for (let n = 0; n < 1024; n++) {
-            let v = Math.floor(Math.random() * 10);
+            let v = Math.floor(Math.random() * 2);
             let i = Math.floor(Math.random() * 8);
             let j = Math.floor(Math.random() * 8);
             let k = Math.floor(Math.random() * 8);
@@ -53,6 +53,20 @@ class OctreeNode {
         }
         this.size = Math.pow(2, this.degree - 1);
     }
+    collapse() {
+        if (this.children != undefined) {
+            let first = this.children[0];
+            for (let i = 1; i < 8; i++) {
+                if (this.children[i] != first) {
+                    return;
+                }
+            }
+            let index = this.parent.children.indexOf(this);
+            this.parent.children[index] = first;
+            this.parent.collapse();
+            console.log("collapse");
+        }
+    }
     _getChild(ii, jj, kk) {
         if (this.children) {
             return this.children[4 * ii + 2 * jj + kk];
@@ -94,11 +108,18 @@ class OctreeNode {
         let kk = Math.floor(k / this.size) % 2;
         if (this.degree === 1) {
             this._setChild(v, ii, jj, kk);
+            this.collapse();
         }
         else {
             let childOctree = this._getChild(ii, jj, kk);
             if (!childOctree) {
                 childOctree = new OctreeNode(this);
+                this._setChild(childOctree, ii, jj, kk);
+            }
+            else if (!(childOctree instanceof (OctreeNode))) {
+                let oldV = childOctree;
+                childOctree = new OctreeNode(this);
+                childOctree.children = [oldV, oldV, oldV, oldV, oldV, oldV, oldV, oldV];
                 this._setChild(childOctree, ii, jj, kk);
             }
             childOctree.set(v, i, j, k);
@@ -108,6 +129,7 @@ class OctreeNode {
         let output = this.serialize();
         let compressedOutput = output[3] + "#" + output[2] + "#" + output[1];
         let l1 = compressedOutput.length;
+        /*
         compressedOutput = compressedOutput.replaceAll("________", "H");
         compressedOutput = compressedOutput.replaceAll("_______", "G");
         compressedOutput = compressedOutput.replaceAll("______", "F");
@@ -116,6 +138,7 @@ class OctreeNode {
         compressedOutput = compressedOutput.replaceAll("___", "C");
         compressedOutput = compressedOutput.replaceAll("__", "B");
         //compressedOutput = compressedOutput.replaceAll("_", "A");
+        
         compressedOutput = compressedOutput.replaceAll("........", "P");
         compressedOutput = compressedOutput.replaceAll(".......", "O");
         compressedOutput = compressedOutput.replaceAll("......", "N");
@@ -124,6 +147,7 @@ class OctreeNode {
         compressedOutput = compressedOutput.replaceAll("...", "K");
         compressedOutput = compressedOutput.replaceAll("..", "J");
         //compressedOutput = compressedOutput.replaceAll(".", "I");
+        */
         let l2 = compressedOutput.length;
         console.log("Compression rate " + ((l2 / l1) * 100).toFixed(0) + "%");
         return compressedOutput;
@@ -145,13 +169,14 @@ class OctreeNode {
                 child.serialize(output);
             }
             else {
-                output[this.degree] += child.toString();
+                output[this.degree] += child.toString().padStart(3, "0");
             }
         }
         return output;
     }
     static DeserializeFromString(input) {
         let deCompressedInput = input;
+        /*
         deCompressedInput = deCompressedInput.replaceAll("H", "________");
         deCompressedInput = deCompressedInput.replaceAll("G", "_______");
         deCompressedInput = deCompressedInput.replaceAll("F", "______");
@@ -160,6 +185,7 @@ class OctreeNode {
         deCompressedInput = deCompressedInput.replaceAll("C", "___");
         deCompressedInput = deCompressedInput.replaceAll("B", "__");
         //deCompressedInput = deCompressedInput.replaceAll("A", "_");
+        
         deCompressedInput = deCompressedInput.replaceAll("P", "........");
         deCompressedInput = deCompressedInput.replaceAll("O", ".......");
         deCompressedInput = deCompressedInput.replaceAll("N", "......");
@@ -168,6 +194,7 @@ class OctreeNode {
         deCompressedInput = deCompressedInput.replaceAll("K", "...");
         deCompressedInput = deCompressedInput.replaceAll("J", "..");
         //deCompressedInput = deCompressedInput.replaceAll("I", ".");
+        */
         let split = deCompressedInput.split("#");
         return OctreeNode.Deserialize([undefined, split[2], split[1], split[0]]);
     }
@@ -177,8 +204,9 @@ class OctreeNode {
         let inputDeg3 = input[3];
         let degree2Nodes = [];
         let degree1Nodes = [];
+        let cursor = 0;
         for (let n = 0; n < inputDeg3.length; n++) {
-            let c = inputDeg3[n];
+            let c = inputDeg3[cursor];
             if (c === ".") {
                 let newNode = new OctreeNode(node);
                 degree2Nodes.push(newNode);
@@ -190,38 +218,48 @@ class OctreeNode {
                 let v = parseInt(c);
                 node._setNthChild(v, n);
             }
+            cursor++;
         }
         // degree 2
-        for (let m = 0; m < degree2Nodes.length; m++) {
-            let nodeDeg2 = degree2Nodes[m];
-            let inputDeg2 = input[2].substring(m * 8, (m + 1) * 8);
-            for (let n = 0; n < inputDeg2.length; n++) {
-                let c = inputDeg2[n];
-                if (c === ".") {
+        cursor = 0;
+        while (degree2Nodes.length > 0) {
+            let nodeDeg2 = degree2Nodes.splice(0, 1)[0];
+            let n = 0;
+            while (n < 8) {
+                let c = input[2][cursor];
+                if (c === "_") {
+                    cursor++;
+                }
+                else if (c === ".") {
                     let newNode = new OctreeNode(nodeDeg2);
                     degree1Nodes.push(newNode);
                     nodeDeg2._setNthChild(newNode, n);
-                }
-                else if (c === "_") {
+                    cursor++;
                 }
                 else {
-                    let v = parseInt(c);
+                    let v = parseInt(input[2].substring(cursor, cursor + 3));
+                    cursor += 3;
                     nodeDeg2._setNthChild(v, n);
                 }
+                n++;
             }
         }
         // degree 1
-        for (let m = 0; m < degree1Nodes.length; m++) {
-            let nodeDeg1 = degree1Nodes[m];
-            let inputDeg1 = input[1].substring(m * 8, (m + 1) * 8);
-            for (let n = 0; n < inputDeg1.length; n++) {
-                let c = inputDeg1[n];
+        cursor = 0;
+        while (degree1Nodes.length > 0) {
+            let nodeDeg1 = degree1Nodes.splice(0, 1)[0];
+            let n = 0;
+            while (n < 8) {
+                let c = input[1][cursor];
                 if (c === "_") {
+                    cursor++;
                 }
                 else {
-                    let v = parseInt(c);
+                    let v = parseInt(input[1].substring(cursor, cursor + 3));
+                    cursor += 3;
                     nodeDeg1._setNthChild(v, n);
                 }
+                n++;
             }
         }
         return node;

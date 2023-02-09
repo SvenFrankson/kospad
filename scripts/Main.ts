@@ -3,7 +3,7 @@ class Main {
     constructor() {
 		let node = new OctreeNode<number>();
 		for (let n = 0; n < 1024; n++) {
-			let v = Math.floor(Math.random() * 10);
+			let v = Math.floor(Math.random() * 2);
 			let i = Math.floor(Math.random() * 8);
 			let j = Math.floor(Math.random() * 8);
 			let k = Math.floor(Math.random() * 8);
